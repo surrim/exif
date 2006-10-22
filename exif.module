@@ -1,0 +1,293 @@
+<?php
+// $Id$
+
+include_once drupal_get_path('module', 'exif') .'/pel/PelJpeg.php';
+    
+/**
+ * Implementation of hook_menu().
+ */
+function exif_menu($may_cache) {
+  $items = array();
+
+  if ($may_cache) {
+    $items[] = array(
+      'path' => 'admin/settings/exif',
+      'title' => t('exif settings'),
+      'callback' => 'exif_admin_settings',
+      'access' => user_access('administer site configuration'),
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function exif_nodeapi(&$node, $op, $teaser) {
+  if ($teaser) {
+    return;
+  }
+  if ($node->type != 'image') {
+    return;
+  }
+  
+  switch ($op) {
+    case 'view':
+      // Access the file's EXIF data. Simply break when no EXIF data is found.
+      $file = file_directory_path() .'/'. $node->images['_original'];
+      $jpeg = new PelJpeg();
+      $jpeg->loadFile($file);
+      $app1 = $jpeg->getSection(PelJpegMarker::APP1);
+      if (!$app1) break;
+      $tiff = $app1->getTiff();
+      if (!$tiff) break;
+      $ifd0 = $tiff->getIfd();
+      if (!$ifd0) break;
+      $ifds[PelIfd::IFD0] = $ifd0;
+      if ($exif = $ifd0->getSubIfd(PelIfd::EXIF)) {
+        $ifds[PelIfd::EXIF] = $exif;
+      }
+      if ($gps = $ifd0->getSubIfd(PelIfd::GPS)) {
+        $ifds[PelIfd::GPS] = $gps;
+      }
+
+      // Retrieve the desired tag values from the file
+      $tags = exif_get_enabled_tags();
+      $rows = array();
+      foreach ($tags as $tag) {
+        if (isset($ifds[$tag->ifd])) {
+          $entry = $ifds[$tag->ifd]->getEntry($tag->tag);
+          if ($entry) {
+            $row = array();
+            $row[] = array('data' => utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag)), 'class' => 'exif-title');
+            switch($tag->tag) {
+              case PelTag::DATE_TIME:
+              case PelTag::DATE_TIME_ORIGINAL:
+              case PelTag::DATE_TIME_DIGITIZED:
+                // Use Drupal's date formatting instead of Pel's
+                $row[] = array('data' => format_date($entry->getValue()), 'class' => 'exif-value');
+                break;
+              
+              default:
+                $row[] = array('data' => utf8_encode($entry->getText()), 'class' => 'exif-value');
+            }
+            $rows[] = $row;
+          }
+        }
+      }      
+      if ($rows) {
+        $header = array(array('data' => t('Image information'), 'colspan' => 2));
+        $node->content['exif'] = array(
+          '#value' => theme('exif_table', $header, $rows),
+          '#weight' => 10,
+        );
+      }
+      break;
+  }
+}
+
+/**
+ * Administration page callback.
+ */
+function exif_admin_settings() {
+  $tags = exif_load_settings();
+  return drupal_get_form('exif_admin_settings_form', $tags);
+}
+
+function exif_admin_settings_form($tags) {
+  foreach ($tags as $tag) {
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['type'] = array(
+      '#type' => 'markup',
+      '#value' => PelIfd::getTypeName($tag->ifd),
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['ifd'] = array(
+      '#type' => 'hidden',
+      '#value' => $tag->ifd,
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['tag'] = array(
+      '#type' => 'hidden',
+      '#value' => $tag->tag,
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['status'] = array(
+      '#type' => 'checkbox',
+      '#title' => utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag)),
+      '#default_value' => $tag->status,
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['weight'] = array(
+      '#type' => 'weight',
+      '#delta' => 10,
+      '#default_value' => $tag->weight,
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['description'] = array(
+      '#type' => 'markup',
+      '#value' => utf8_encode(PelTag::getDescription($tag->ifd, $tag->tag)),
+    );
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['#tree'] = TRUE;
+    $form['tags']["{$tag->ifd}_{$tag->tag}"]['#weight'] = $tag->weight;
+  }
+  $form['buttons']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration')
+  );
+  $form['buttons']['reset'] = array(
+    '#type' => 'submit',
+    '#value' => t('Reset to defaults')
+  );
+
+  return $form;
+}
+
+function exif_admin_settings_form_submit($form_id, $values) {
+  $op = isset($_POST['op']) ? $_POST['op'] : '';
+
+  if ($op == t('Reset to defaults')) {
+    exif_reset_settings();
+    drupal_set_message(t('The configuration options have been reset to their default values.'));
+  }
+  else {
+    exif_save_settings($values);
+    drupal_set_message(t('The configuration options have been saved.'));
+  }
+}
+
+/**
+ * Return an array containing only the tags that were enabled.
+ */
+function exif_get_enabled_tags() {
+  static $tags = array();
+
+  if (!count($tags)) {
+    $result = db_query('SELECT * FROM {exif} WHERE status = 1');
+    while ($tag = db_fetch_object($result)) {
+      $tags[] = $tag;
+    }
+    if (!count($tags)) {
+      // Table is empty, get some defaults
+      $tags = exif_get_default_settings();
+      foreach ($tags as $key => $tag) {
+        if (!$tag->status) {
+          unset($tags[$key]);
+        }
+      }
+    }
+    usort($tags, '_exif_compare_tags');
+  }
+
+  return $tags;
+}
+
+/**
+ * Return an array with all the valid tags and their settings.
+ */
+function exif_load_settings() {
+  $tags = exif_get_default_settings();
+  
+  $result = db_query('SELECT * FROM {exif}');
+  while ($tag = db_fetch_object($result)) {
+    $tags["{$tag->ifd}_{$tag->tag}"] = $tag;
+  }
+  usort($tags, '_exif_compare_tags');
+
+  return $tags;
+}
+
+function exif_save_settings($tags) {
+  foreach ($tags as $tag) {
+    db_lock_table('exif');
+    db_query('DELETE FROM {exif} WHERE ifd = %d AND tag = %d', $tag['ifd'], $tag['tag']);
+    db_query('INSERT INTO {exif} (ifd, tag, status, weight) VALUES (%d, %d, %d, %d)', $tag['ifd'], $tag['tag'], $tag['status'], $tag['weight']);
+    db_unlock_tables();
+  }
+}
+
+function exif_reset_settings() {
+  db_query('DELETE FROM {exif}');
+}
+
+/**
+ * Return an array with all the valid tags, with some useful default settings.
+ */
+function exif_get_default_settings() {
+  $tags = exif_get_valid_tags();
+  $tags[PelIfd::EXIF .'_'. PelTag::DATE_TIME_ORIGINAL]->status = 1;
+  $tags[PelIfd::EXIF .'_'. PelTag::DATE_TIME_ORIGINAL]->weight = -10;
+  $tags[PelIfd::IFD0 .'_'. PelTag::MODEL]->status = 1;
+  $tags[PelIfd::IFD0 .'_'. PelTag::MODEL]->weight = -8;
+  $tags[PelIfd::EXIF .'_'. PelTag::FOCAL_LENGTH]->status = 1;
+  $tags[PelIfd::EXIF .'_'. PelTag::FOCAL_LENGTH]->weight = -6;
+  $tags[PelIfd::EXIF .'_'. PelTag::APERTURE_VALUE]->status = 1;
+  $tags[PelIfd::EXIF .'_'. PelTag::APERTURE_VALUE]->weight = -4;
+  $tags[PelIfd::EXIF .'_'. PelTag::EXPOSURE_TIME]->status = 1;
+  $tags[PelIfd::EXIF .'_'. PelTag::EXPOSURE_TIME]->weight = -2;
+  $tags[PelIfd::EXIF .'_'. PelTag::ISO_SPEED_RATINGS]->status = 1;
+  $tags[PelIfd::EXIF .'_'. PelTag::ISO_SPEED_RATINGS]->weight = 0;
+  return $tags;
+}
+
+/**
+ * Helper function to return all the valid tags (well, at least those this module cares about).
+ *
+ * For convenience, each tag has a key in the form: "ifd_tag", where ifd and tag
+ * are standard Exif ids. Those ids can be found in PelIfd.php and PelTag.php.
+ */
+function exif_get_valid_tags() {
+  $valid_tags = array();
+  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::IFD0, new PelIfd(PelIfd::IFD0)));
+  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::EXIF, new PelIfd(PelIfd::EXIF)));
+  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::GPS, new PelIfd(PelIfd::GPS)));
+  return $valid_tags;
+}
+
+function _exif_get_valid_ifd_tags($ifd_id, $ifd) {
+  $tags = array();
+  $pel_tags = $ifd->getValidTags();
+  foreach ($pel_tags as $pel_tag) {
+    $tag = new StdClass();
+    $tag->ifd = $ifd_id;
+    $tag->tag = $pel_tag;
+    $tags["{$tag->ifd}_{$tag->tag}"] = $tag;
+  }
+  return $tags;
+}
+
+function _exif_compare_tags($a, $b) {
+  $status = $b->status - $a->status;
+  // Separate enabled from disabled.
+  if ($status) {
+    return $status;
+  }
+  // Enabled tags
+  if ($a->status) {
+    $weight = $a->weight - $b->weight;
+    if ($weight) {
+      return $weight;
+    }
+    return $a->ifd - $b->ifd;
+  }
+  // Disabled tags
+  else {
+    return $a->ifd - $b->ifd;
+  }
+}
+
+function theme_exif_table($header, $rows) {
+  return theme('table', $header, $rows, array('class' => 'exif'));
+}
+  
+function theme_exif_admin_settings_form($form) {
+  $header = array(t('Tag'), t('Weight'), t('Type'), t('Description'));
+  $rows = array();
+  foreach (element_children($form['tags']) as $key) {
+    $row = array();
+    $row[] = drupal_render($form['tags'][$key]['status']);
+    $row[] = drupal_render($form['tags'][$key]['weight']);
+    $row[] = drupal_render($form['tags'][$key]['type']);
+    $row[] = drupal_render($form['tags'][$key]['description']);
+    $rows[] = $row;
+  }
+  $output .= theme('table', $header, $rows, array('class' => 'admin-settings-exif'));
+  $output .= drupal_render($form);
+  return $output;
+}
+
