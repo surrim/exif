@@ -1,0 +1,30 @@
+<?php
+// $Id$
+
+function exif_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE {exif} (
+          ifd int(10) unsigned NOT NULL default '0',
+          tag int(10) unsigned NOT NULL default '0',
+          status int(10) unsigned NOT NULL default '0',
+          weight int(11) NOT NULL default '0',
+          PRIMARY KEY (ifd, tag)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;"
+      );
+      break;
+    case 'pgsql':
+      db_query("CREATE TABLE {exif} (
+          ifd integer NOT NULL default '0',
+          tag integer NOT NULL default '0',
+          status integer NOT NULL default '0',
+          weight integer NOT NULL default '0',
+          PRIMARY KEY (ifd, tag)
+        );"
+      );
+      break;
+  }
+}
+
+?>
