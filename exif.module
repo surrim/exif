@@ -12,9 +12,10 @@ function exif_menu($may_cache) {
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/exif',
-      'title' => t('exif settings'),
+      'title' => t('Exif settings'),
       'callback' => 'exif_admin_settings',
       'access' => user_access('administer site configuration'),
+      'description' => t('Configure what Exif tags to display.'),
     );
   }
 
