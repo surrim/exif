@@ -67,7 +67,7 @@ function exif_nodeapi(&$node, $op, $teaser) {
               case PelTag::DATE_TIME_ORIGINAL:
               case PelTag::DATE_TIME_DIGITIZED:
                 // Use Drupal's date formatting instead of Pel's
-                $row[] = array('data' => format_date($entry->getValue()), 'class' => 'exif-value');
+                $row[] = array('data' => format_date($entry->getValue(), 'medium', '', 0), 'class' => 'exif-value');
                 break;
               
               default:
