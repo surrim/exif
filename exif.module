@@ -37,6 +37,7 @@ function exif_nodeapi(&$node, $op, $teaser) {
     case 'view':
       // Access the file's EXIF data. Simply break when no EXIF data is found.
       $file = file_directory_path() .'/'. $node->images['_original'];
+      if (!is_file($file)) break;
       $jpeg = new PelJpeg();
       $jpeg->loadFile($file);
       $app1 = $jpeg->getSection(PelJpegMarker::APP1);
