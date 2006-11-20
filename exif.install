@@ -1,6 +1,9 @@
 <?php
 // $Id$
 
+/**
+ * Implementation of hook_install().
+ */
 function exif_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
@@ -27,4 +30,9 @@ function exif_install() {
   }
 }
 
-?>
+/**
+ * Implementation of hook_uninstall().
+ */
+function exif_uninstall() {
+  db_query('DROP TABLE {exif}');
+}
