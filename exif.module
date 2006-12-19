@@ -12,7 +12,7 @@ function exif_menu($may_cache) {
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/exif',
-      'title' => t('Exif settings'),
+      'title' => t('Exif'),
       'callback' => 'exif_admin_settings',
       'access' => user_access('administer site configuration'),
       'description' => t('Configure what Exif tags to display.'),
@@ -38,11 +38,10 @@ function exif_nodeapi(&$node, $op, $teaser) {
       // Access the file's EXIF data. Simply break when no EXIF data is found.
       $file = file_directory_path() .'/'. $node->images['_original'];
       if (!is_file($file)) break;
-      $jpeg = new PelJpeg();
-      $jpeg->loadFile($file);
-      $app1 = $jpeg->getSection(PelJpegMarker::APP1);
-      if (!$app1) break;
-      $tiff = $app1->getTiff();
+      $jpeg = new PelJpeg($file);
+      $exif = $jpeg->getExif();
+      if (!$exif) break;
+      $tiff = $exif->getTiff();
       if (!$tiff) break;
       $ifd0 = $tiff->getIfd();
       if (!$ifd0) break;
@@ -121,10 +120,6 @@ function exif_admin_settings_form($tags) {
       '#delta' => 10,
       '#default_value' => $tag->weight,
     );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['description'] = array(
-      '#type' => 'markup',
-      '#value' => utf8_encode(PelTag::getDescription($tag->ifd, $tag->tag)),
-    );
     $form['tags']["{$tag->ifd}_{$tag->tag}"]['#tree'] = TRUE;
     $form['tags']["{$tag->ifd}_{$tag->tag}"]['#weight'] = $tag->weight;
   }
@@ -147,7 +142,7 @@ function exif_admin_settings_form_submit($form_id, $values) {
     exif_reset_settings();
     drupal_set_message(t('The configuration options have been reset to their default values.'));
   }
-  else {
+  elseif ($op == t('Save configuration')) {
     exif_save_settings($values);
     drupal_set_message(t('The configuration options have been saved.'));
   }
@@ -194,13 +189,16 @@ function exif_load_settings() {
   return $tags;
 }
 
-function exif_save_settings($tags) {
-  foreach ($tags as $tag) {
-    db_lock_table('exif');
+function exif_save_settings($values) {
+  db_lock_table('exif');
+  foreach ($values as $tag) {
+    if (!is_array($tag) || !isset($tag['ifd'])) {
+      continue; // Save only appropriate form values
+    }
     db_query('DELETE FROM {exif} WHERE ifd = %d AND tag = %d', $tag['ifd'], $tag['tag']);
     db_query('INSERT INTO {exif} (ifd, tag, status, weight) VALUES (%d, %d, %d, %d)', $tag['ifd'], $tag['tag'], $tag['status'], $tag['weight']);
-    db_unlock_tables();
   }
+  db_unlock_tables();
 }
 
 function exif_reset_settings() {
@@ -278,14 +276,13 @@ function theme_exif_table($header, $rows) {
 }
   
 function theme_exif_admin_settings_form($form) {
-  $header = array(t('Tag'), t('Weight'), t('Type'), t('Description'));
+  $header = array(t('Tag'), t('Weight'), t('Type'));
   $rows = array();
   foreach (element_children($form['tags']) as $key) {
     $row = array();
     $row[] = drupal_render($form['tags'][$key]['status']);
     $row[] = drupal_render($form['tags'][$key]['weight']);
     $row[] = drupal_render($form['tags'][$key]['type']);
-    $row[] = drupal_render($form['tags'][$key]['description']);
     $rows[] = $row;
   }
   $output .= theme('table', $header, $rows, array('class' => 'admin-settings-exif'));

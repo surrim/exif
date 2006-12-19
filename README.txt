@@ -35,7 +35,7 @@ This module requires the PHP Exif Library (PEL), http://sourceforge.net/projects
 PEL itself requires PHP version 5.
 It does NOT work under PHP 4.
 
-This module has been tested with PEL version 0.9.
+This module has been tested with PEL version 0.91.
 
 And of course, this module also requires Drupal (version 5.0). This module won't
 do anything without the Image module (http://drupal.org/project/image), as Exif
@@ -72,7 +72,7 @@ Installation
 Credits
 *******
 
-David Lesieur <david [at] davidlesieur [dot] com>
+David Lesieur, http://davidlesieur.com, http://drupal.org/user/17157
 
-PEL is written by Martin Geisler <mgeisler [at] users.sourceforge [dot] net>
+PEL is written by Martin Geisler. 
 PEL originally started out as a port of libexif.
