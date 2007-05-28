@@ -36,7 +36,10 @@ function exif_nodeapi(&$node, $op, $teaser) {
   switch ($op) {
     case 'view':
       // Access the file's EXIF data. Simply break when no EXIF data is found.
-      $file = file_directory_path() .'/'. $node->images['_original'];
+      $file = file_create_path($node->images['_original']);
+      if (!file_exists($file)) {
+        watchdog('exif', t('Image %file not found.', array('%file' => $file)), WATCHDOG_WARNING);
+      }
       if (!is_file($file)) break;
       $jpeg = new PelJpeg($file);
       $exif = $jpeg->getExif();
