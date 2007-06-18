@@ -3,4 +3,4 @@ name = Exif
 description = "Display Exif metadata on image nodes."
 dependencies = image
 package = Image
-version = "$Name$"
+
