@@ -56,14 +56,16 @@ Installation
    like:
 
    drupal/
-     modules/
-       exif/
-         pel/
-           README
-           INSTALL
-           Pel.php
-           PelJpeg.php
-           ...
+     sites/
+       example.com/
+         modules/
+           exif/
+             pel/
+               README
+               INSTALL
+               Pel.php
+               PelJpeg.php
+               ...
              
 3. Enable the Exif module on your site's administer > site building > modules
    page. A database table will automagically be created at this point.
