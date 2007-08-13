@@ -39,8 +39,9 @@ function exif_nodeapi(&$node, $op, $teaser) {
       $file = file_create_path($node->images['_original']);
       if (!file_exists($file)) {
         watchdog('exif', t('Image %file not found.', array('%file' => $file)), WATCHDOG_WARNING);
+        break;
       }
-      if (!is_file($file)) break;
+      if (exif_imagetype($file) != IMAGETYPE_JPEG) break;
       $jpeg = new PelJpeg($file);
       $exif = $jpeg->getExif();
       if (!$exif) break;

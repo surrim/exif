@@ -32,6 +32,9 @@ Requirements
 
 This module requires the PHP Exif Library (PEL), http://sourceforge.net/projects/pel
 
+Your PHP must be compiled in with --enable-exif. Windows users must also have
+the mbstring extension enabled.
+
 PEL itself requires PHP version 5.
 It does NOT work under PHP 4.
 
