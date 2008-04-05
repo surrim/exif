@@ -1,8 +1,6 @@
 <?php
 // $Id$
 
-include_once drupal_get_path('module', 'exif') .'/pel/PelJpeg.php';
-    
 /**
  * Implementation of hook_menu().
  */
@@ -13,7 +11,8 @@ function exif_menu($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/exif',
       'title' => t('Exif'),
-      'callback' => 'exif_admin_settings',
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('exif_admin_settings_form'),
       'access' => user_access('administer site configuration'),
       'description' => t('Configure what Exif tags to display.'),
     );
@@ -26,68 +25,35 @@ function exif_menu($may_cache) {
  * Implementation of hook_nodeapi().
  */
 function exif_nodeapi(&$node, $op, $teaser) {
-  if ($teaser) {
+  if ($teaser || $node->type != 'image') {
     return;
   }
-  if ($node->type != 'image') {
-    return;
-  }
-  
-  switch ($op) {
-    case 'view':
-      // Access the file's EXIF data. Simply break when no EXIF data is found.
-      $file = file_create_path($node->images['_original']);
-      if (!file_exists($file)) {
-        watchdog('exif', t('Image %file not found.', array('%file' => $file)), WATCHDOG_WARNING);
-        break;
-      }
-      if (exif_imagetype($file) != IMAGETYPE_JPEG) break;
-      $jpeg = new PelJpeg($file);
-      $exif = $jpeg->getExif();
-      if (!$exif) break;
-      $tiff = $exif->getTiff();
-      if (!$tiff) break;
-      $ifd0 = $tiff->getIfd();
-      if (!$ifd0) break;
-      $ifds[PelIfd::IFD0] = $ifd0;
-      if ($exif = $ifd0->getSubIfd(PelIfd::EXIF)) {
-        $ifds[PelIfd::EXIF] = $exif;
-      }
-      if ($gps = $ifd0->getSubIfd(PelIfd::GPS)) {
-        $ifds[PelIfd::GPS] = $gps;
-      }
 
-      // Retrieve the desired tag values from the file
-      $tags = exif_get_enabled_tags();
-      $rows = array();
-      foreach ($tags as $tag) {
-        if (isset($ifds[$tag->ifd])) {
-          $entry = $ifds[$tag->ifd]->getEntry($tag->tag);
-          if ($entry) {
-            $row = array();
-            $row[] = array('data' => utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag)), 'class' => 'exif-title');
-            switch($tag->tag) {
-              case PelTag::DATE_TIME:
-              case PelTag::DATE_TIME_ORIGINAL:
-              case PelTag::DATE_TIME_DIGITIZED:
-                // Use Drupal's date formatting instead of Pel's
-                $row[] = array('data' => format_date($entry->getValue(), 'medium', '', 0), 'class' => 'exif-value');
-                break;
-              
-              default:
-                $row[] = array('data' => utf8_encode($entry->getText()), 'class' => 'exif-value');
-            }
-            $rows[] = $row;
-          }
+  switch ($op) {
+    case 'insert':
+    case 'update':
+      $fid = db_result(db_query("SELECT fid FROM {files} WHERE filepath = '%s'", $node->images[IMAGE_ORIGINAL]));
+      $file = file_create_path($node->images[IMAGE_ORIGINAL]);
+      $data = _exif_read_exif($file);
+      db_query('DELETE FROM {exif} WHERE fid = %d', $fid);
+
+      // Cache data in db.
+      foreach ($data as $ifd => $tags) {
+        foreach ($tags as $tag => $value) {
+          db_query("INSERT INTO {exif} (fid, ifd, tag, value) VALUES (%d, %d, %d, '%s')",
+            $fid, $ifd, $tag, $value);
         }
-      }      
-      if ($rows) {
-        $header = array(array('data' => t('Image information'), 'colspan' => 2));
-        $node->content['exif'] = array(
-          '#value' => theme('exif_table', $header, $rows),
-          '#weight' => 10,
-        );
       }
+      break;
+
+    case 'load':
+      $fid = db_result(db_query("SELECT fid FROM {files} WHERE filepath = '%s'", $node->images[IMAGE_ORIGINAL]));
+      return  array('exif_data' => _exif_get_exif($fid));
+    case 'view':
+      $node->content['exif'] = array(
+        '#value' => theme('exif_table', $node),
+        '#weight' => 10,
+      );
       break;
   }
 }
@@ -95,12 +61,9 @@ function exif_nodeapi(&$node, $op, $teaser) {
 /**
  * Administration page callback.
  */
-function exif_admin_settings() {
+function exif_admin_settings_form() {
+  _exif_bootstrap();
   $tags = exif_load_settings();
-  return drupal_get_form('exif_admin_settings_form', $tags);
-}
-
-function exif_admin_settings_form($tags) {
   foreach ($tags as $tag) {
     $form['tags']["{$tag->ifd}_{$tag->tag}"]['type'] = array(
       '#type' => 'markup',
@@ -153,13 +116,82 @@ function exif_admin_settings_form_submit($form_id, $values) {
 }
 
 /**
+ * Fetch exif data.
+ */
+function _exif_get_exif($fid) {
+  $data = array();
+  if ($result = db_query('SELECT * FROM {exif} WHERE fid = %d', $fid)) {
+    while ($row = db_fetch_object($result)) {
+      $data[$row->ifd][$row->tag] = $row->value;
+    }
+  }
+
+  return $data;
+}
+
+/**
+ * Reads exif data from a file.
+ */
+function _exif_read_exif($file) {
+  _exif_bootstrap();
+  $data = array();
+  if (!file_exists($file)) {
+    watchdog('exif', t('Image %file not found.', array('%file' => $file)), WATCHDOG_WARNING);
+    return $exif;
+  }
+  if (exif_imagetype($file) != IMAGETYPE_JPEG) {
+    return $data;
+  }
+  $jpeg = new PelJpeg($file);
+  $exif = $jpeg->getExif();
+  if (!$exif) {
+    return $data;
+  }
+  $tiff = $exif->getTiff();
+  if (!$tiff) {
+    return $data;
+  }
+  $ifd0 = $tiff->getIfd();
+  if (!$ifd0) {
+    return $data;
+  }
+  $ifds[PelIfd::IFD0] = $ifd0;
+  if ($exif = $ifd0->getSubIfd(PelIfd::EXIF)) {
+    $ifds[PelIfd::EXIF] = $exif;
+  }
+  if ($gps = $ifd0->getSubIfd(PelIfd::GPS)) {
+    $ifds[PelIfd::GPS] = $gps;
+  }
+  $tags = exif_get_enabled_tags();
+  $data = array();
+  foreach ($tags as $tag) {
+    $entry = $ifds[$tag->ifd]->getEntry($tag->tag);
+    if ($entry) {
+      $row = array();
+      switch($tag->tag) {
+        case PelTag::DATE_TIME:
+        case PelTag::DATE_TIME_ORIGINAL:
+        case PelTag::DATE_TIME_DIGITIZED:
+          // Return a unixtimestamp. Theme will handle date formating.
+          $data[$tag->ifd][$tag->tag] = $entry->getValue();
+          break;
+
+        default:
+          $data[$tag->ifd][$tag->tag] = utf8_encode($entry->getText());
+      }
+    }
+  }
+  return $data;
+}
+
+/**
  * Return an array containing only the tags that were enabled.
  */
 function exif_get_enabled_tags() {
   static $tags = array();
 
   if (!count($tags)) {
-    $result = db_query('SELECT * FROM {exif} WHERE status = 1');
+    $result = db_query('SELECT * FROM {exif_tags} WHERE status = 1');
     while ($tag = db_fetch_object($result)) {
       $tags[] = $tag;
     }
@@ -183,8 +215,8 @@ function exif_get_enabled_tags() {
  */
 function exif_load_settings() {
   $tags = exif_get_default_settings();
-  
-  $result = db_query('SELECT * FROM {exif}');
+
+  $result = db_query('SELECT * FROM {exif_tags}');
   while ($tag = db_fetch_object($result)) {
     $tags["{$tag->ifd}_{$tag->tag}"] = $tag;
   }
@@ -194,19 +226,19 @@ function exif_load_settings() {
 }
 
 function exif_save_settings($values) {
-  db_lock_table('exif');
+  db_lock_table('exif_tags');
   foreach ($values as $tag) {
     if (!is_array($tag) || !isset($tag['ifd'])) {
       continue; // Save only appropriate form values
     }
-    db_query('DELETE FROM {exif} WHERE ifd = %d AND tag = %d', $tag['ifd'], $tag['tag']);
-    db_query('INSERT INTO {exif} (ifd, tag, status, weight) VALUES (%d, %d, %d, %d)', $tag['ifd'], $tag['tag'], $tag['status'], $tag['weight']);
+    db_query('DELETE FROM {exif_tags} WHERE ifd = %d AND tag = %d', $tag['ifd'], $tag['tag']);
+    db_query('INSERT INTO {exif_tags} (ifd, tag, status, weight) VALUES (%d, %d, %d, %d)', $tag['ifd'], $tag['tag'], $tag['status'], $tag['weight']);
   }
   db_unlock_tables();
 }
 
 function exif_reset_settings() {
-  db_query('DELETE FROM {exif}');
+  db_query('DELETE FROM {exif_tags}');
 }
 
 /**
@@ -275,10 +307,40 @@ function _exif_compare_tags($a, $b) {
   }
 }
 
-function theme_exif_table($header, $rows) {
+function theme_exif_table($node) {
+  _exif_bootstrap();
+  // Retrieve the desired tag values from the file
+  $tags = exif_get_enabled_tags();
+  $rows = array();
+  $data = $node->exif_data;
+
+  foreach ($tags as $tag) {
+    if (!empty($data[$tag->ifd][$tag->tag])) {
+      $row = array();
+      $row[] = array('data' => check_plain(utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag))), 'class' => 'exif-title');
+      $val = $data[$tag->ifd][$tag->tag];
+      switch($tag->tag) {
+        case PelTag::DATE_TIME:
+        case PelTag::DATE_TIME_ORIGINAL:
+        case PelTag::DATE_TIME_DIGITIZED:
+          // Use Drupal's date formatting instead of Pel's
+          $row[] = array('data' => format_date($val, 'medium', '', 0), 'class' => 'exif-value');
+          break;
+
+        default:
+          $row[] = array('data' => check_plain($val), 'class' => 'exif-value');
+      }
+      $rows[] = $row;
+    }
+  }
+
+  if (empty($rows)) {
+    return '';
+  }
+  $header = array(array('data' => t('Image information'), 'colspan' => 2));
   return theme('table', $header, $rows, array('class' => 'exif'));
 }
-  
+
 function theme_exif_admin_settings_form($form) {
   $header = array(t('Tag'), t('Weight'), t('Type'));
   $rows = array();
@@ -292,5 +354,9 @@ function theme_exif_admin_settings_form($form) {
   $output .= theme('table', $header, $rows, array('class' => 'admin-settings-exif'));
   $output .= drupal_render($form);
   return $output;
+}
+
+function _exif_bootstrap() {
+  include_once drupal_get_path('module', 'exif') .'/pel/PelJpeg.php';
 }
 

@@ -74,10 +74,3 @@ Installation
    tags to display.
 
 
-Credits
-*******
-
-David Lesieur, http://davidlesieur.com, http://drupal.org/user/17157
-
-PEL is written by Martin Geisler. 
-PEL originally started out as a port of libexif.

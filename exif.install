@@ -8,7 +8,7 @@ function exif_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      db_query("CREATE TABLE {exif} (
+      db_query("CREATE TABLE {exif_tags} (
           ifd int(10) unsigned NOT NULL default '0',
           tag int(10) unsigned NOT NULL default '0',
           status int(10) unsigned NOT NULL default '0',
@@ -16,9 +16,17 @@ function exif_install() {
           PRIMARY KEY (ifd, tag)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;"
       );
+      db_query("CREATE TABLE {exif} (
+          fid int(10) unsigned NOT NULL default '0',
+          ifd int(10) unsigned NOT NULL default '0',
+          tag int(10) unsigned NOT NULL default '0',
+          value varchar(255) NOT NULL default '',
+          PRIMARY KEY (fid, ifd, tag)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;"
+      );
       break;
     case 'pgsql':
-      db_query("CREATE TABLE {exif} (
+      db_query("CREATE TABLE {exif_tags} (
           ifd integer NOT NULL default '0',
           tag integer NOT NULL default '0',
           status integer NOT NULL default '0',
@@ -26,13 +34,52 @@ function exif_install() {
           PRIMARY KEY (ifd, tag)
         );"
       );
+      db_query("CREATE TABLE {exif} (
+          fid int(10) unsigned NOT NULL default '0',
+          ifd int(10) unsigned NOT NULL default '0',
+          tag int(10) unsigned NOT NULL default '0',
+          value varchar(255) NOT NULL default '',
+          PRIMARY KEY (fid, ifd, tag)
+        );"
+      );
       break;
   }
+}
+
+function exif_update_1() {
+  // Works for postgres??
+  $ret[] = update_sql('ALTER TABLE {exif} RENAME TO {exif_tags}');
+  // make new table for caching and tracking exif data.
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE {exif} (
+          fid int(10) unsigned NOT NULL default '0',
+          ifd int(10) unsigned NOT NULL default '0',
+          tag int(10) unsigned NOT NULL default '0',
+          value varchar(255) NOT NULL default '',
+          PRIMARY KEY (fid, ifd, tag)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;"
+      );
+      break;
+    case 'pgsql':
+      $ret[] = update_sql("CREATE TABLE {exif} (
+          fid int(10) unsigned NOT NULL default '0',
+          ifd int(10) unsigned NOT NULL default '0',
+          tag int(10) unsigned NOT NULL default '0',
+          value varchar(255) NOT NULL default '',
+          PRIMARY KEY (fid, ifd, tag)
+        );"
+      );
+      break;
+  }
+  return $ret;
 }
 
 /**
  * Implementation of hook_uninstall().
  */
 function exif_uninstall() {
+  db_query('DROP TABLE {exif_tags}');
   db_query('DROP TABLE {exif}');
 }
