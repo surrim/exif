@@ -1,0 +1,12 @@
+<?php
+
+/*
+ * Hook sets weight must be less than exif module (zero by default).
+ */
+function exif_location_install() {
+  $ret = array();
+  $ret[] = db_query("UPDATE {system} SET weight = 2 WHERE name = 'exif_location'");
+  return $ret;
+}
+
+?>
