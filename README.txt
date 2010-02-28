@@ -1,3 +1,5 @@
+// $Id: 
+
 README file for the Exif Drupal module.
 
 
@@ -19,58 +21,39 @@ The metadata tags defined in the Exif standard cover a broad spectrum including 
    camera.
  * Descriptions and copyright information.
 
-Administrators can choose what Exif tags they want to display, and control the
-order of appearance. 
+Administrators can choose via CCK fields which Exif information are read.
 
 At this time, this module supports Exif information only with JPEG files.
 
 [1] Reference: http://en.wikipedia.org/wiki/Exchangeable_image_file_format
 
 
-Requirements
+Requirements and Constraints
+****************************
+
+CCK with at least textfields enabled.
+If you use a module like imagefield. It's only possible to have one image per node!! 
+If there are more than one images per node, only the exif data of one image is read!
+
+
+Usage
 ************
 
-This module requires the PHP Exif Library (PEL), http://sourceforge.net/projects/pel
+After installing it you can go to your CCK nodetype. It supports both the image module 
+aswell as the imagefield module. Let's say you have an content type "photo". Go to your
+cck settings and add a new field. For the name of the field you need to follow the following
+naming conventions:
 
-Your PHP must be compiled in with --enable-exif. Windows users must also have
-the mbstring extension enabled.
+Example: 
+#1 field_exif_exposuretime -> this would read the ExposureTime of the image and save it
+in this field.
 
-PEL itself requires PHP version 5.
-It does NOT work under PHP 4.
+#2 field_ifd0_datetime ->	this would read the date time (2009:01:23 08:52:43) of the image.
+as a field_type you can take for example a normal textfield, but also a date field would be
+possible.
 
-This module has been tested with PEL version 0.91.
+General rule is: [field]_[section]_[name] 
 
-And of course, this module also requires Drupal (version 5.0). This module won't
-do anything without the Image module (http://drupal.org/project/image), as Exif
-data is displayed only on image nodes.
-
-
-Installation
-************
-
-1. Extract the 'exif' module directory, including all its subdirectories, into
-   your Drupal modules directory.
-
-2. Download and extract the PEL archive into the modules/exif/pel
-   directory. When you're finished the directory structure should look something
-   like:
-
-   drupal/
-     sites/
-       example.com/
-         modules/
-           exif/
-             pel/
-               README
-               INSTALL
-               Pel.php
-               PelJpeg.php
-               ...
-             
-3. Enable the Exif module on your site's administer > site building > modules
-   page. A database table will automagically be created at this point.
-
-4. Go to administer > site configuration > exif settings, and select what Exif
-   tags to display.
-
-
+Under admin/settings/exif you can see a list of all possible information. These informations
+are taken from the image "sample.jpg". I may not contain all tags available. If you are looking
+for some specific tags you can just replace this image with your own image.

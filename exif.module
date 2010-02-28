@@ -1,362 +1,489 @@
 <?php
-// $Id$
+// $Id:
 
 /**
- * Implementation of hook_menu().
+ * @author: Jean-Philippe Hautin
+ * Adapted from exif module by Raphael Schär - www.rapsli.ch, www.schaerwebdesign.ch
+ * Changes:
+ * - suppress need of 'sub-module' exif_helper
+ * - update to use Drupal 7 Field API (new hook and logic)
+ * - update to use Drupal 7 i18n nodes
+ * - Support several field types
+ *   - text field (as previous version)
+ *   - term reference type (new !). This allow to
+ *     - able to create terms (iptc and exif values)
+ *     - able to create parent terms (iptc and exif field key)
+ *
  */
-function exif_menu($may_cache) {
-  $items = array();
 
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/settings/exif',
-      'title' => t('Exif'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('exif_admin_settings_form'),
-      'access' => user_access('administer site configuration'),
-      'description' => t('Configure what Exif tags to display.'),
-    );
-  }
+function exif_menu() {
+  $items['admin/config/media/exif'] = array(
+    'title' => 'Images Metadata fields settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('exif_admin_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'description' => t('Images Metadata Settings'),
+    'access callback' => 'user_access',
+    'type' => MENU_LOCAL_TASK,
+  );
+
 
   return $items;
 }
 
 /**
- * Implementation of hook_nodeapi().
+ * Implements hook_help().
  */
-function exif_nodeapi(&$node, $op, $teaser) {
-  if ($teaser || $node->type != 'image') {
-    return;
-  }
-
-  switch ($op) {
-    case 'insert':
-    case 'update':
-      $fid = db_result(db_query("SELECT fid FROM {files} WHERE filepath = '%s'", $node->images[IMAGE_ORIGINAL]));
-      $file = file_create_path($node->images[IMAGE_ORIGINAL]);
-      $data = _exif_read_exif($file);
-      db_query('DELETE FROM {exif} WHERE fid = %d', $fid);
-
-      // Cache data in db.
-      foreach ($data as $ifd => $tags) {
-        foreach ($tags as $tag => $value) {
-          db_query("INSERT INTO {exif} (fid, ifd, tag, value) VALUES (%d, %d, %d, '%s')",
-            $fid, $ifd, $tag, $value);
+function exif_help($path, $arg) {
+  drupal_add_css(drupal_get_path('module','exif') . '/exif.css');
+  $filepath = drupal_get_path('module','exif') . '/sample.jpg';
+  $exif = _exif_get_class();
+  $fullmetadata = $exif->readMetadataTags($filepath);
+  switch ($path) {
+    case 'admin/help#exif':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Exif module allows you :');
+      $output .= '<ul><li>' . t('extract metadata from an image'). '</li>';
+      $output .= '<li>' . t('to classify your images by settings terms in taxonamy vocabulary'). '</li></ul>';
+      $output .= t('To classify images, you define <em>vocabularies</em> that contain related <em>terms</em>, and then assign the vocabularies to content types. For more information, see the online handbook entry for the <a href="@taxonomy">Taxonomy module</a>.', array('@taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/'));
+      $output .= '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Creating vocabularies') . '</dt>';
+      $output .= '<dd>' . t('Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> through the <a href="@taxo">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion. A <em>controlled vocabulary</em> classifying music by genre with terms and sub-terms could look as follows:', array('@taxo' => url('admin/structure/taxonomy'), '@perm' => url('admin/config/people/permissions', array('fragment'=>'module-taxonomy'))));
+      $output .= t('This module will automatically create in the chosen vocabulary (by default "Images"), the folowing structure:');
+      $output .= '<ul><li>' . t ('<em>vocabulary</em>: Images'); '</li>';
+      $output .= '<ul><li>' . t('<em>term</em>: iptc') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: keywords') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: Paris') . '</li>';
+      $output .= '<li>' . t('<em>sub-term</em>: Friends') . '</li>';
+      $output .= '</ul></ul>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: caption') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: Le louvre') . '</li>';
+      $output .= '</ul></ul></ul>';
+      $output .= '<ul><li>' . t('<em>term</em>: exif') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: model') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: KINON DE800') . '</li>';
+      $output .= '</ul></ul>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: isospeedratings') . '</li>';
+      $output .= '<ul><li>' . t('<em>sub-term</em>: 200') . '</li>';
+      $output .= '</ul></ul></ul></ul>';
+      $output .= '<dd>' . t('To get metadata information of an image, you have to choose on which node type the extraction should be made.');
+      $output .=  t('You also have to create fields with specific names using the new Field UI.');
+      $output .=  t('The type of the field can be :');
+      $output .= '<ul><li>' . t ('<em>text field</em>: extract information and put it in the text field.'). '</li>';
+      $output .= '<li>' . t ('<em>term reference field</em>: extract information, create terms and sub-terms if needed and put it in the field.').'</li>';
+      $output .= '</ul>';
+      $output .= t('Please, if you want to use term reference field, ensure :');
+      $output .= '<ul><li>' . t('you choose the autocompletion widget and').'</li>';;
+      $output .= '<li>' . t ('the "Images" Vocabulary exist.').'</li>';
+      $output .= '</ul>';
+      $output .=  t('TIPS : Note for iptc and exif fields that have several values (like field iptc "keywords" as an example), ');
+      $output .=  t('if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).');
+      $output .= '</dd>';
+      $output .= '</dl>';
+      $output .= '<h3>' . t('Example of field name and the metadata extracted') . '</h3>';
+      $rows = array();
+      $help = '';
+      if(is_array($fullmetadata)){
+        foreach ($fullmetadata as $section => $section_data) {
+          $rows[] = array('data'=>array($section,$help), 'class' => array('tag_type'));
+          $section_data=_exif_reformat($section_data);
+          foreach ($section_data as $key => $value) {
+            if ($value != NULL && $value != '' && !_exif_startswith($key,'undefinedtag')) {
+              $resultTag = "";
+              if (is_array($value)) {
+                foreach($value as $innerkey => $innervalue) {
+                  if( ($innerkey+1) != count($value) )
+                  $resultTag.=check_plain(utf8_encode($innervalue)).", ";
+                  else
+                  $resultTag.=check_plain(utf8_encode($innervalue));
+                }
+              } else {
+                //$resultTag=check_plain(utf8_encode($value));
+                $resultTag=check_plain(utf8_encode($value));
+              }
+              $rows[] = array('data'=>array("field_".$section."_".$key,check_plain(utf8_encode($resultTag))), 'class' => array('tag'));
+            }
+          }
         }
       }
-      break;
-
-    case 'load':
-      $fid = db_result(db_query("SELECT fid FROM {files} WHERE filepath = '%s'", $node->images[IMAGE_ORIGINAL]));
-      return  array('exif_data' => _exif_get_exif($fid));
-    case 'view':
-      $node->content['exif'] = array(
-        '#value' => theme('exif_table', $node),
-        '#weight' => 10,
-      );
-      break;
+      $header = array(t('Key'),t('Value'));
+      $output .= '<p>';
+      $variables = array ("header" => $header, "rows" => $rows, "attributes" => array(), "caption" => array(),"sticky" => array(), "colgroups" => array(), "empty" => array() );
+      $output .= theme_table($variables);
+      $output .= '</p>';
+      return $output;
   }
 }
 
 /**
- * Administration page callback.
+ * Implements hook_permission().
  */
-function exif_admin_settings_form() {
-  _exif_bootstrap();
-  $tags = exif_load_settings();
-  foreach ($tags as $tag) {
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['type'] = array(
-      '#type' => 'markup',
-      '#value' => PelIfd::getTypeName($tag->ifd),
-    );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['ifd'] = array(
-      '#type' => 'hidden',
-      '#value' => $tag->ifd,
-    );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['tag'] = array(
-      '#type' => 'hidden',
-      '#value' => $tag->tag,
-    );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['status'] = array(
-      '#type' => 'checkbox',
-      '#title' => utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag)),
-      '#default_value' => $tag->status,
-    );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['weight'] = array(
-      '#type' => 'weight',
-      '#delta' => 10,
-      '#default_value' => $tag->weight,
-    );
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['#tree'] = TRUE;
-    $form['tags']["{$tag->ifd}_{$tag->tag}"]['#weight'] = $tag->weight;
-  }
-  $form['buttons']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save configuration')
+function exif_permission() {
+  return array(
+    'administer image metadata' => array(
+      'title' => t('Administer image metadata'),
+  ),
   );
-  $form['buttons']['reset'] = array(
-    '#type' => 'submit',
-    '#value' => t('Reset to defaults')
-  );
-
-  return $form;
 }
 
-function exif_admin_settings_form_submit($form_id, $values) {
-  $op = isset($_POST['op']) ? $_POST['op'] : '';
-
-  if ($op == t('Reset to defaults')) {
-    exif_reset_settings();
-    drupal_set_message(t('The configuration options have been reset to their default values.'));
-  }
-  elseif ($op == t('Save configuration')) {
-    exif_save_settings($values);
-    drupal_set_message(t('The configuration options have been saved.'));
-  }
-}
-
-/**
- * Fetch exif data.
- */
-function _exif_get_exif($fid) {
-  $data = array();
-  if ($result = db_query('SELECT * FROM {exif} WHERE fid = %d', $fid)) {
-    while ($row = db_fetch_object($result)) {
-      $data[$row->ifd][$row->tag] = $row->value;
+function _exif_node_insert_update($node) {
+  $fields = field_info_instances('node',$node->type);
+  //By default (and for now), module use the first field by alphabetic order in the default english language.
+  // TODO : make GUI to define which field to use to look for the photo.
+  //END
+  if(_exif_check_for_exif_data($node->type)){
+    $exif = _exif_get_class();
+    $ar_exif_fields = $exif->getMetadataFields($fields);
+    $field_image_name = _exif_get_image_field($fields);
+    //first simple case, image field not found.
+    if ($field_image_name == FALSE) {
+      return FALSE;
     }
-  }
-
-  return $data;
-}
-
-/**
- * Reads exif data from a file.
- */
-function _exif_read_exif($file) {
-  _exif_bootstrap();
-  $data = array();
-  if (!file_exists($file)) {
-    watchdog('exif', t('Image %file not found.', array('%file' => $file)), WATCHDOG_WARNING);
-    return $exif;
-  }
-  if (exif_imagetype($file) != IMAGETYPE_JPEG) {
-    return $data;
-  }
-  $jpeg = new PelJpeg($file);
-  $exif = $jpeg->getExif();
-  if (!$exif) {
-    return $data;
-  }
-  $tiff = $exif->getTiff();
-  if (!$tiff) {
-    return $data;
-  }
-  $ifd0 = $tiff->getIfd();
-  if (!$ifd0) {
-    return $data;
-  }
-  $ifds[PelIfd::IFD0] = $ifd0;
-  if ($exif = $ifd0->getSubIfd(PelIfd::EXIF)) {
-    $ifds[PelIfd::EXIF] = $exif;
-  }
-  if ($gps = $ifd0->getSubIfd(PelIfd::GPS)) {
-    $ifds[PelIfd::GPS] = $gps;
-  }
-  $tags = exif_get_enabled_tags();
-  $data = array();
-  foreach ($tags as $tag) {
-    $entry = $ifds[$tag->ifd]->getEntry($tag->tag);
-    if ($entry) {
-      $row = array();
-      switch($tag->tag) {
-        case PelTag::DATE_TIME:
-        case PelTag::DATE_TIME_ORIGINAL:
-        case PelTag::DATE_TIME_DIGITIZED:
-          // Return a unixtimestamp. Theme will handle date formating.
-          $data[$tag->ifd][$tag->tag] = $entry->getValue();
-          break;
-
-        default:
-          $data[$tag->ifd][$tag->tag] = utf8_encode($entry->getText());
-      }
+    //then check it is an array
+    if (!is_array($node->$field_image_name)) {
+      return FALSE;
     }
-  }
-  return $data;
-}
-
-/**
- * Return an array containing only the tags that were enabled.
- */
-function exif_get_enabled_tags() {
-  static $tags = array();
-
-  if (!count($tags)) {
-    $result = db_query('SELECT * FROM {exif_tags} WHERE status = 1');
-    while ($tag = db_fetch_object($result)) {
-      $tags[] = $tag;
+    $field_image = $node->$field_image_name;
+    $language = _exif_get_image_language($field_image);
+    if ($language == FALSE) {
+      return FALSE;
     }
-    if (!count($tags)) {
-      // Table is empty, get some defaults
-      $tags = exif_get_default_settings();
-      foreach ($tags as $key => $tag) {
-        if (!$tag->status) {
-          unset($tags[$key]);
+    $fid = _exif_get_image_fid($field_image,$language);
+    if ($fid == FALSE) {
+      return FALSE;
+    }
+    $file =  file_load($fid);
+    $absoluteFilePath = drupal_realpath($file->uri);
+    $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
+    $data = $exif->filterMetadataTags($fullmetadata,$ar_exif_fields);
+
+    // prepare data to be stored in fields
+    $i = 0;
+    foreach ($data as $section => $section_data) {
+      $section_data=_exif_reformat($section_data);
+      foreach ($section_data as $key => $value) {
+        if ($value != NULL) {
+          $field_name = 'field_' . $section . "_" . $key;
+          $tmp = $node->$field_name;
+          if ($tmp == NULL) {
+            $tmp = array($language => array() );
+          }
+          $value=_exif_prepare_date($key,$value);
+          $field_type=$fields[$field_name];
+          if (is_array($value)) {
+            $j = 0 ;
+            foreach($value as $innerkey => $innervalue) {
+              _exif_handle_field($j,$language,$field_type,$tmp,$section,$key,$innervalue);
+              $j++;
+            }
+          } else {
+            _exif_handle_field(0,$language,$field_type,$tmp,$section,$key,$value);
+          }
+          $node->$field_name = $tmp;
+          $i++;
         }
       }
     }
-    usort($tags, '_exif_compare_tags');
   }
-
-  return $tags;
 }
 
 /**
- * Return an array with all the valid tags and their settings.
+ * format value of exif value in case it is a date value.
+ * @param unknown_type $exif_name
+ * @param unknown_type $value
+ * @return unknown_type
  */
-function exif_load_settings() {
-  $tags = exif_get_default_settings();
-
-  $result = db_query('SELECT * FROM {exif_tags}');
-  while ($tag = db_fetch_object($result)) {
-    $tags["{$tag->ifd}_{$tag->tag}"] = $tag;
-  }
-  usort($tags, '_exif_compare_tags');
-
-  return $tags;
-}
-
-function exif_save_settings($values) {
-  db_lock_table('exif_tags');
-  foreach ($values as $tag) {
-    if (!is_array($tag) || !isset($tag['ifd'])) {
-      continue; // Save only appropriate form values
+function _exif_prepare_date($exif_name,$value) {
+  //incase we get a datefield, we need to reformat it to the ISO 8601 standard:
+  //which will look something like 2004-02-12T15:19:21
+  $date_array = array('datetimeoriginal','datetime','datetimedigitized');
+  if(in_array($exif_name,$date_array)){
+    $date_time = explode(" ",$value);
+    $date_time[0] = str_replace(":","-",$date_time[0]);
+    if(variable_get('exif_granularity',0) == 1){
+      $date_time[1] = "00:00:00";
     }
-    db_query('DELETE FROM {exif_tags} WHERE ifd = %d AND tag = %d', $tag['ifd'], $tag['tag']);
-    db_query('INSERT INTO {exif_tags} (ifd, tag, status, weight) VALUES (%d, %d, %d, %d)', $tag['ifd'], $tag['tag'], $tag['status'], $tag['weight']);
+    $value = implode("T",$date_time);
   }
-  db_unlock_tables();
-}
-
-function exif_reset_settings() {
-  db_query('DELETE FROM {exif_tags}');
+  return $value;
 }
 
 /**
- * Return an array with all the valid tags, with some useful default settings.
+ * handle field by delegating to specific type handler.
+ * @param $index
+ * @param $field_type
+ * @param $field_data
+ * @return unknown_type
  */
-function exif_get_default_settings() {
-  $tags = exif_get_valid_tags();
-  $tags[PelIfd::EXIF .'_'. PelTag::DATE_TIME_ORIGINAL]->status = 1;
-  $tags[PelIfd::EXIF .'_'. PelTag::DATE_TIME_ORIGINAL]->weight = -10;
-  $tags[PelIfd::IFD0 .'_'. PelTag::MODEL]->status = 1;
-  $tags[PelIfd::IFD0 .'_'. PelTag::MODEL]->weight = -8;
-  $tags[PelIfd::EXIF .'_'. PelTag::FOCAL_LENGTH]->status = 1;
-  $tags[PelIfd::EXIF .'_'. PelTag::FOCAL_LENGTH]->weight = -6;
-  $tags[PelIfd::EXIF .'_'. PelTag::APERTURE_VALUE]->status = 1;
-  $tags[PelIfd::EXIF .'_'. PelTag::APERTURE_VALUE]->weight = -4;
-  $tags[PelIfd::EXIF .'_'. PelTag::EXPOSURE_TIME]->status = 1;
-  $tags[PelIfd::EXIF .'_'. PelTag::EXPOSURE_TIME]->weight = -2;
-  $tags[PelIfd::EXIF .'_'. PelTag::ISO_SPEED_RATINGS]->status = 1;
-  $tags[PelIfd::EXIF .'_'. PelTag::ISO_SPEED_RATINGS]->weight = 0;
-  return $tags;
+function _exif_handle_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value) {
+  if ($field_type['widget']['module']=='text') {
+    _exif_handle_text_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
+  } else if ($field_type['widget']['module']=='taxonomy') {
+    _exif_handle_taxonomy_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
+  }
 }
 
 /**
- * Helper function to return all the valid tags (well, at least those this module cares about).
+ * handle text field.
+ * @param $index
+ * @param $field_data
+ * @return unknown_type
+ */
+function _exif_handle_text_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value) {
+  $field_data[$language][$index]['value'] = check_plain(utf8_encode($value));
+}
+
+/**
+ * handle taxonomy field.
+ * @param $terms
+ * @param $field_data
+ * @return unknown_type
+ */
+function _exif_handle_taxonomy_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value)  {
+  //TODO : check if the vocabulary is the same as the field
+  //look for the term
+  $terms = taxonomy_get_term_by_name($exif_value);
+  if (is_array($terms) && count($terms)>0) {
+    $term = array_shift($terms);
+    $field_data[$language][$index]['tid'] = $term->tid;
+  } else{
+    //TODO: make auto-creation optional even if vocabulary exist.
+    //TODO: add option to choose vocabulary
+    // if not exist, create it
+    //store full metadata in vocabulary
+    $vocabularies = taxonomy_get_vocabularies();
+    $chosen_vocabulary = variable_get('exif_vocabulary',0);
+    if ($chosen_vocabulary != 0) {
+      $terms = taxonomy_get_term_by_name($exif_name);
+      if (is_array($terms) && count($terms)>0) {
+        $parent_term = array_shift($terms);
+      } else {
+        $terms = taxonomy_get_term_by_name($exif_section);
+        if (is_array($terms) && count($terms)>0) {
+          $section_term = array_shift($terms);
+        } else {
+          $section_term = _exif_create_term($chosen_vocabulary,$exif_section);
+        }
+        $parent_term = _exif_create_term($chosen_vocabulary,$exif_name,$section_term->tid);
+      }
+      $term = _exif_create_term($chosen_vocabulary,$exif_value,$parent_term->tid);
+      if (isset($term->tid)) {
+        $field_data[$language][$index]['tid'] = $term->tid;
+      }
+    }
+  }
+}
+
+/**
  *
- * For convenience, each tag has a key in the form: "ifd_tag", where ifd and tag
- * are standard Exif ids. Those ids can be found in PelIfd.php and PelTag.php.
+ * @param $vid
+ * @param $name
+ * @param $parent_term
+ * @return unknown_type
  */
-function exif_get_valid_tags() {
-  $valid_tags = array();
-  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::IFD0, new PelIfd(PelIfd::IFD0)));
-  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::EXIF, new PelIfd(PelIfd::EXIF)));
-  $valid_tags = array_merge($valid_tags, _exif_get_valid_ifd_tags(PelIfd::GPS, new PelIfd(PelIfd::GPS)));
-  return $valid_tags;
+function _exif_create_term($vid,$name,$parent_term = 0) {
+  $term = new stdClass();
+  $term->vid=$vid;
+  $term->name=check_plain(utf8_encode($name));
+  $term->parent=array($parent_term);
+  taxonomy_term_save($term);
+  return $term;
 }
 
-function _exif_get_valid_ifd_tags($ifd_id, $ifd) {
-  $tags = array();
-  $pel_tags = $ifd->getValidTags();
-  foreach ($pel_tags as $pel_tag) {
-    $tag = new StdClass();
-    $tag->ifd = $ifd_id;
-    $tag->tag = $pel_tag;
-    $tags["{$tag->ifd}_{$tag->tag}"] = $tag;
-  }
-  return $tags;
-}
-
-function _exif_compare_tags($a, $b) {
-  $status = $b->status - $a->status;
-  // Separate enabled from disabled.
-  if ($status) {
-    return $status;
-  }
-  // Enabled tags
-  if ($a->status) {
-    $weight = $a->weight - $b->weight;
-    if ($weight) {
-      return $weight;
-    }
-    return $a->ifd - $b->ifd;
-  }
-  // Disabled tags
-  else {
-    return $a->ifd - $b->ifd;
+/**
+ * implementation of hook_field_attach_presave
+ *
+ * calculate value for metadata field and set them before storage.
+ *
+ * @param String $obj_type The type of $object; e.g. 'node' or 'user'.
+ * @param $object The object with fields to save.
+ */
+function exif_field_attach_presave($obj_type, $object) {
+  if ($obj_type == 'node') {
+    _exif_node_insert_update($object);
   }
 }
-
-function theme_exif_table($node) {
-  _exif_bootstrap();
-  // Retrieve the desired tag values from the file
-  $tags = exif_get_enabled_tags();
-  $rows = array();
-  $data = $node->exif_data;
-
-  foreach ($tags as $tag) {
-    if (!empty($data[$tag->ifd][$tag->tag])) {
-      $row = array();
-      $row[] = array('data' => check_plain(utf8_encode(PelTag::getTitle($tag->ifd, $tag->tag))), 'class' => 'exif-title');
-      $val = $data[$tag->ifd][$tag->tag];
-      switch($tag->tag) {
-        case PelTag::DATE_TIME:
-        case PelTag::DATE_TIME_ORIGINAL:
-        case PelTag::DATE_TIME_DIGITIZED:
-          // Use Drupal's date formatting instead of Pel's
-          $row[] = array('data' => format_date($val, 'medium', '', 0), 'class' => 'exif-value');
-          break;
-
-        default:
-          $row[] = array('data' => check_plain($val), 'class' => 'exif-value');
+/**
+ * implementation of hook_field_attach_form.
+ * remove metadata field from the form as it is programatically completed.
+ *
+ * @param $obj_type
+ * @param $object
+ * @param $form
+ * @param $form_state
+ * @param $langcode
+ * @return unknown_type
+ */
+function exif_field_attach_form($obj_type, $object, &$form, &$form_state, $langcode) {
+  if ($obj_type == 'node') {
+    foreach ($form as $key => $value) {
+      if (_exif_startswith($key,"field_iptc_") || _exif_startswith($key,"field_exif_") ) {
+        unset($form[$key]);
       }
-      $rows[] = $row;
     }
   }
+}
 
-  if (empty($rows)) {
-    return '';
+function _exif_startswith($hay, $needle) {
+  return substr($hay, 0, strlen($needle)) === $needle;
+}
+
+
+/**
+ * Let's check if this node type contains an image field.
+ *
+ * @param $fields fields from this content type
+ * @return boolean
+ */
+function _exif_check_for_exif_data($node_type) {
+
+  $new_types = array();
+  //fill up array with checked nodetypes
+  foreach (variable_get('exif_nodetypes', array()) as $type) {
+    if ($type != "0" ) {
+      $new_types[] = $type;
+    }
   }
-  $header = array(array('data' => t('Image information'), 'colspan' => 2));
-  return theme('table', $header, $rows, array('class' => 'exif'));
-}
-
-function theme_exif_admin_settings_form($form) {
-  $header = array(t('Tag'), t('Weight'), t('Type'));
-  $rows = array();
-  foreach (element_children($form['tags']) as $key) {
-    $row = array();
-    $row[] = drupal_render($form['tags'][$key]['status']);
-    $row[] = drupal_render($form['tags'][$key]['weight']);
-    $row[] = drupal_render($form['tags'][$key]['type']);
-    $rows[] = $row;
+  if(in_array($node_type, $new_types)) {
+    return TRUE;
   }
-  $output .= theme('table', $header, $rows, array('class' => 'admin-settings-exif'));
-  $output .= drupal_render($form);
-  return $output;
+  return FALSE;
 }
 
-function _exif_bootstrap() {
-  include_once drupal_get_path('module', 'exif') .'/pel/PelJpeg.php';
+function _exif_get_image_field($fields) {
+  foreach ($fields as $key => $value) {
+    if (is_array($value) && is_array($value['widget']) && $value['widget']['type'] == 'image_image' ) {
+      return $key;
+    }
+  }
+  return FALSE;
 }
 
+function _exif_get_image_language($field) {
+  if (array_key_exists('und',$field)) {
+    return 'und';
+  } else if (array_key_exists($node->language,$field)) {
+    return $node->language;
+  } else {
+    return FALSE;
+  }
+}
+
+function _exif_get_image_fid($field,$language) {
+  if (is_array($field[$language]) && is_array($field[$language][0]) ) {
+    $localized_field=$field[$language][0];
+  } else  {
+    return FALSE;
+  }
+  $fid=$localized_field['fid'];
+  return $fid;
+}
+
+function exif_admin_settings_form() {
+  $forms = array();
+  $forms['exif_granularity'] = array(
+		'#type'	=>	'select',
+		'#title'=>	t('Granularity'),
+		'#options'=> array(0=>t('Default'),1=>('Day')),
+		'#default_value'=>variable_get('exif_granularity',0),
+		'#description'=>t('If a timestamp is select (for example the date the picture was taken), you can specify here how granular the timestamp should be. If you select default it will just take whatever is available in the picture. If you select Day, the Date saved will look something like 13-12-2008. This can be useful if you want to use some kind of grouping on the data.'),
+  );
+
+  $all_nodetypes = node_type_get_types();
+  $all_nt = array();
+  foreach($all_nodetypes as $item){
+    $all_nt[$item->type] = $item->name;
+  }
+  $forms['exif_nodetypes'] = array(
+		'#type'	=>	'checkboxes',
+		'#title'=>	t('Nodetypes'),
+		'#options'=> $all_nt,
+		'#default_value'=>variable_get('exif_nodetypes',array()),
+		'#description'=> t('Select nodetypes which should be checked for itpc & exif data. In case the nodetypes contains more than one image field, the module will use the first one.'),
+  );
+
+  $all_vocabularies = taxonomy_get_vocabularies();
+  $all_vocs = array();
+  $all_vocs[0] = 'None';
+  foreach($all_vocabularies as $item){
+    $all_vocs[$item->vid] = $item->name;
+  }
+  $forms['exif_vocabulary'] = array(
+		'#type'	=>	'select',
+		'#title'=>	t('Vocabulary'),
+		'#options'=> $all_vocs,
+		'#default_value'=>variable_get('exif_vocabulary',array()),
+		'#description'=> t('Select vocabulary which should be used for itpc & exif data.'),
+  );
+
+  return system_settings_form($forms);
+}
+
+/**
+ * Helper function to reformat fields where required.
+ *
+ * Some values (lat/lon) break down into structures, not strings.
+ * Dates should be parsed nicely.
+ */
+function _exif_reformat($data) {
+  $date_array = array('datetimeoriginal', 'datetime', 'datetimedigitized');
+
+  // Make the key lowercase as field names must be.
+  $data = array_change_key_case($data, CASE_LOWER);
+  foreach ($data as $key => &$value) {
+    if (is_array($value))  {
+      $value = array_change_key_case($value, CASE_LOWER);
+    }
+    if ($key == 'gps_latitude') {
+      $value = _exif_reformat_DMS2D($value, $data['gps_gpslatituderef']);
+    }
+    elseif ($key == 'gps_longitude') {
+      $value = _exif_reformat_DMS2D($value, $data['gps_gpslongituderef']);
+    }
+    elseif (in_array($key, $date_array)) {
+      // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
+      // which will look something like 2004-02-12T15:19:21
+      $date_time = explode(" ", $value);
+      $date_time[0] = str_replace(":", "-", $date_time[0]);
+      if (variable_get('exif_granularity', 0) == 1) {
+        $date_time[1] = "00:00:00";
+      }
+      $value = implode("T", $date_time);
+    } elseif ($key == 'usercomment') {
+      if (_exif_startswith($value,'UNICODE')) {
+        $value=substr($value,7);
+      }
+    }
+  }
+  return $data;
+}
+
+/**
+ * Helper function to change GPS co-ords into decimals.
+ */
+function _exif_reformat_DMS2D($value, $ref) {
+  $parts = split('/', $value[0]);
+  $dec = $parts[0] / $parts[1];
+
+  $parts = split('/', $value[1]);
+  $dec += ($parts[0] / $parts[1]) / 60;
+
+  $parts = split('/', $value[2]);
+  $dec += ($parts[0] / $parts[1]) / 3600;
+
+  if ($ref == 'S' || $ref == 'W') $dec *= -1;
+  return $dec;
+}
+
+/**
+ * Helper function to get the exif class
+ * @return Exif
+ */
+function _exif_get_class() {
+  include_once drupal_get_path('module', 'exif') .'/exif.class.php';
+  $exif = Exif::getInstance();
+  return $exif;
+}

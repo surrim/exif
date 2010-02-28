@@ -1,6 +1,12 @@
 ; $Id$
 name = Exif
-description = "Display Exif metadata on image nodes."
-dependencies = image
+description = "Display image metadata (exif and iptc)."
 package = Image
-
+core = 7.x
+version = "7.x-1.x-dev"
+dependencies[] = translation
+dependencies[] = taxonomy
+dependencies[] = image
+files[]=exif.module
+files[]=exif.class.php
+configure = admin/config/media/exif
