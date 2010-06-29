@@ -2,14 +2,13 @@
 //$Id:
 
 /**
- * @author Jean-Philippe Hautin
- * a little adaption from module Exif 6.1 branch by Raphael Schär
- * This is a helper class to handle the whole data processing of iptc and exif
+ *
+ * @author Raphael SchÃ¤r
+ * This is a helper class to handle the whole data processing of exif
  *
  */
 Class Exif {
-  private static $instance = NULL;
-
+  static private $instance = NULL;
 
   /**
    * We are implementing a singleton pattern
@@ -23,85 +22,255 @@ Class Exif {
     }
     return self::$instance;
   }
+  
+  public function getMetadataSections() {
+  	$sections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc', 'xmp');
+  	return $sections;
+  }
 
   /**
    * Going through all the fields that have been created for a given node type
    * and try to figure out which match the naming convention -> so that we know
-   * which metadata information we have to read
+   * which exif information we have to read
    *
-   * Naming convention are: field_<section>_<field> (<field> would be the name of the metadata
-   * tag to read, <section> indicate the section to look for the <field>)
+   * Naming convention are: field_exif_xxx (xxx would be the name of the exif
+   * tag to read
    *
    * @param $arCckFields array of CCK fields
-   * @return array a list of metadata tags to read for this image
+   * @return array a list of exif tags to read for this image
    */
   public function getMetadataFields($arCckFields=array()) {
-    $arSections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc');
-    $arMetadata= array();
+    $arSections = Exif::getMetadataSections();
+    $arExif = array();
 
     foreach ($arCckFields as $field) {
       $ar = explode("_", $field['field_name']);
-      if($ar[0] == 'field' && isset($ar[1]) && in_array($ar[1], $arSections)) {
+      if ($ar[0] == 'field' && isset($ar[1]) && in_array($ar[1], $arSections)) {
         unset($ar[0]);
         $section = $ar[1];
         unset($ar[1]);
-        $arMetadata[] = array('section'=>$section,'tag'=>implode("_", $ar));
+        $arExif[] = array('section'=>$section, 'tag'=>implode("_", $ar));
       }
     }
-    return $arMetadata;
+    return $arExif;
   }
 
   /**
-   * Read the Information from a picture according to the fields specified in Field API
+   * $arOptions liste of options for the method :
+   * # enable_sections : (default : TRUE) retreive also sections.
+   * @param unknown_type $file
+   * @param unknown_type $arTagNames
+   * @param unknown_type $arOptions
+   */
+  public function readMetadataTags($file, $enable_sections = TRUE) {
+    if (!file_exists($file)) {
+      return array();
+    }  	
+  	$data1 = $this->readExifTags($file,$enable_sections);  	
+  	$data2 = $this->readIPTCTags($file,$enable_sections);
+//  	$data3 = $this->readXMPTags($file,$arTagNames,$arOptions);
+//  	$result = array_merge ( $data1, $data2, $data3);
+	$arSmallMetadata = array_merge ( $data1, $data2 );
+	return $arSmallMetadata;
+  }
+  
+function filterMetadataTags($arSmallMetadata, $arTagNames) {
+	$info = array();
+    foreach ($arTagNames as $tagName) {
+      if (!empty($arSmallMetadata[$tagName['section']][$tagName['tag']])) {
+        $info[$tagName['section']][$tagName['tag']] = $arSmallMetadata[$tagName['section']][$tagName['tag']];
+      }
+    }
+    return $info;  	
+}  
+  
+  /**
+   * Read the Information from a picture according to the fields specified in CCK
    * @param $file
    * @param $arTagNames
    * @return array
    */
-  public function readMetadataTags($file) {
-     if (!file_exists($file)) {
-      return array();
-    }
-
+  public function readExifTags($file, $enable_sections = TRUE) {
     $ar_supported_types = array('jpg', 'jpeg');
     if (!in_array(strtolower($this->getFileType($file)), $ar_supported_types)) {
       return array();
     }
-    $exif = exif_read_data($file,0);
-      $result = array();
-    if (is_array($exif)) {
-      foreach($exif as $key => $value)
-      {
-        $result["exif"][strtolower($key)] = $value;
-      }
-    }    
-    $humanReadableKey = $this->getHumanReadableIPTCkey();
-    $size = GetImageSize ($file, $infoImage);
-    $iptc = iptcparse($infoImage["APP13"]);
-    if (is_array($iptc)) {
-      foreach($iptc as $key => $value)
-      {
-        $calculated_key = $humanReadableKey[$key];
-        $result["iptc"][$calculated_key] = $value;
-      }
+    $exif = exif_read_data($file, 0,$enable_sections);
+    $arSmallExif = array();
+    foreach ((array)$exif as $key1 => $value1) {
+    	
+    	if (is_array($value1)) {
+    		$value2 = array ();
+    		foreach ((array)$value1 as $key3 => $value3) {
+    			$value[strtolower($key3)]= $value3 ;	
+    		}
+    	} else {
+    		$value = $value;
+    	}
+      $arSmallExif[strtolower($key1)] = $value;
+      
     }
-    return $result;
+    return $arSmallExif;
   }
-  
+
   private function getFileType($file) {
     $ar = explode('.', $file);
     $ending = $ar[count($ar)-1];
     return $ending;
-  }  
+  }
 
-  public function filterMetadataTags($metadataTags=array(),$wantedMetadataTags=array()) {
-    $arSections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc');
-    $info = array();
-    foreach ($wantedMetadataTags as $tagName) {
-      if (in_array($tagName['section'],$arSections)) {
-        $info[$tagName['section']][$tagName['tag']] = $metadataTags[$tagName['section']][$tagName['tag']];
+  /**
+   * Read IPTC tags.
+   * 
+   * @param String $file
+   * 	Path to image to read IPTC from
+   * 
+   * @param array $arTagNames
+   * 	An array of Strings that contain the IPTC to read
+   * 	If you leave this empty nothing will be returned, unless you select a special 
+   * 	return style in the $arOptions
+   * 
+   * @param array $arOptions
+   * 	The following options are possible:
+   * 	style: fullSmall
+   * 	
+   */
+  public function readIPTCTags($file, $enable_sections) {
+    $humanReadableKey = $this->getHumanReadableIPTCkey();
+    $size = GetImageSize ($file, $infoImage);
+    $iptc = empty($infoImage["APP13"]) ? array() : iptcparse($infoImage["APP13"]);
+    $arSmallIPTC = array();
+    if (is_array($iptc)) {
+      foreach ($iptc as $key => $value) {
+        $resultTag = "";
+        foreach ($value as $innerkey => $innervalue) {
+          if( ($innerkey+1) != count($value) ) {
+             $resultTag .= $innervalue . ", ";     
+          }
+          else {
+            $resultTag .= $innervalue;
+          }
+        }
+        $arSmallIPTC[$humanReadableKey[$key]] = $resultTag;
       }
     }
-    return $info;
+    if ($enable_sections) {
+    	return array ('iptc' => $arSmallIPTC);
+    } else {
+    	return $arSmallIPTC;
+    }
+  }
+
+  /**
+   * Read XMP data from an image file.
+   *
+   * @param $file
+   *   File path.
+   *
+   * @param $arTagNames
+   *   Available metadata fields.
+   *
+   * @return
+   *   XMP image metadata.
+   *
+   * @todo
+   *   Support for different array keys.
+   */
+  public function readXMPTags($file, $enable_sections = TRUE) {
+    // Get a CCK-XMP mapping.
+    $map  = $this->getXMPFields();
+    $xmp  = $this->openXMP($file);
+    $info = array();
+
+    if ($xmp != FALSE) {
+      // Iterate over XMP fields defined by CCK.
+      foreach ($arTagNames as $tagName) {
+        if ($tagName['section'] == "xmp") {
+          // Get XMP field.
+          $config                                          = $map[$tagName['tag']];
+          $field                                           = $this->readXMPItem($xmp, $config);
+          $info[$tagName['section'] .'_'. $tagName['tag']] = $field;
+        }
+      }
+      $this->closeXMP($xmp);
+    }
+    if ($enable_sections) {
+    	return array ('xmp' => $info);
+    } else {
+    	return $info;
+    }
+  }
+
+  /**
+   * Open an image file for XMP data extraction.
+   *
+   * @param $file
+   *   File path.
+   *
+   * @return
+   *   Array with XMP file and metadata.
+   */
+  function openXMP($file) {
+    // Setup.
+    $xmpfiles = new SXMPFiles();
+    $xmpmeta  = new SXMPMeta();
+
+    // Open.
+    $xmpfiles->OpenFile($file);
+    // Get XMP metadata into the object.
+    if ($xmpfiles->GetXMP($xmpmeta)) {
+      // Sort metadata.
+      $xmpmeta->Sort();
+      return array('files' => $xmpfiles, 'meta' => $xmpmeta);
+    }
+    // No XMP data available.
+    return FALSE;
+  }
+
+  /**
+   * Close a file opened for XMP data extraction.
+   *
+   * @param $xmp
+   *   XMP array as returned from openXMP().
+   */
+  function closeXMP($xmp) { 
+    $xmp['files']->CloseFile();
+  }
+
+  /**
+   * Read a single item from an image file.
+   *
+   * @param $xmp
+   *   XMP array as returned from openXMP().
+   *
+   * @param $config
+   *   XMP field configuration.
+   *
+   * @param $key
+   *   In case of array field type, the numeric field key.
+   *
+   * @return
+   *   Field value.
+   */
+  public function readXMPItem($xmp, $config, $key = 0) {
+    // Setup.
+    $xmpfiles = $xmp['files'];
+    $xmpmeta  = $xmp['meta'];
+
+    // Try to read XMP data if the namespace is available.
+    if(@$xmpmeta->GetNamespacePrefix($config['ns'])) {
+      if ($config['type'] == 'property') {
+        $value = @$xmpmeta->GetProperty($config['name'], $config['ns']);
+      }
+      elseif ($config['type'] == 'array') {
+        $value = @$xmpmeta->GetArrayItem($config['name'], $key, $config['ns']);
+      } 
+      elseif ($config['type'] == 'struct') {
+        $value = @$xmpmeta->GetStructField($config['ns'], $config['struct'], $config['ns'], $config['name']);
+      }
+    }
+
+    return $value;
   }
 
   /**
@@ -122,7 +291,7 @@ Class Exif {
       "2#135" => "language_identifier",
       "2#131" => "image_orientation",
       "2#130" => "image_type",
-      "2#125" => "rasterized_caption",
+      "2#125" => "rasterized_caption",    
       "2#122" => "writer",
       "2#120" => "caption",
       "2#118" => "contact",
@@ -142,7 +311,7 @@ Class Exif {
       "2#070" => "program_version",
       "2#065" => "originating_program",
       "2#063" => "digital_creation_time",
-      "2#062" => "digital_creation_date",
+      "2#062" => "digital_creation_date",   
       "2#060" => "creation_time",
       "2#055" => "creation_date",
       "2#050" => "reference_number",
@@ -158,9 +327,9 @@ Class Exif {
       "2#026" => "content_location_code",
       "2#025" => "keywords",
       "2#022" => "fixture_identifier",
-      "2#020" => "supplemental_category",
+      "2#020" => "supplemental_category", 
       "2#015" => "category",
-      "2#010" => "subject_reference",
+      "2#010" => "subject_reference", 
       "2#010" => "urgency",
       "2#008" => "editorial_update",
       "2#007" => "edit_status",
@@ -169,6 +338,114 @@ Class Exif {
       "2#003" => "object_type_reference",
       "2#000" => "record_version"
       );
-
   }
-}
+
+  /**
+   * XMP fields mapper. As we're dealing with a mapper between RDF
+   * elements and CCK fields, we have to define custom keys that
+   * both on the field name and the namespace used.
+   *
+   * And, as the XMP specs also defines some datatypes like properties,
+   * arrays and structures, we have to deal with those as well.
+   *
+   * @return array
+   *   Mapping between CCK and XMP fields.
+   */
+  public function getXMPFields() {
+    return array(
+      'headline'            => array(
+        'name'              => 'Headline',
+        'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
+        'type'              => 'property',
+      ),
+      'authorsposition'     => array(
+        'name'              => 'AuthorsPosition',
+        'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
+        'type'              => 'property',
+        ),
+      'source'              => array(
+        'name'              => 'Source',
+        'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
+        'type'              => 'property',
+        ),
+      'instructions'        => array(
+        'name'              => 'Instructions',
+        'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
+        'type'              => 'property',
+        ),
+      'subject'             => array(
+        'name'              => 'subject',
+        'ns'                => 'http://purl.org/dc/elements/1.1/',
+        'type'              => 'array',
+        ),
+      'description'         => array(
+        'name'              => 'description',
+        'ns'                => 'http://purl.org/dc/elements/1.1/',
+        'type'              => 'array',
+        ),
+      'creator'             => array(
+        'name'              => 'creator',
+        'ns'                => 'http://purl.org/dc/elements/1.1/',
+        'type'              => 'array',
+        ),
+      'rights'              => array(
+        'name'              => 'rights',
+        'ns'                => 'http://purl.org/dc/elements/1.1/',
+        'type'              => 'array',
+        ),
+      'title'              => array(
+        'name'              => 'title',
+        'ns'                => 'http://purl.org/dc/elements/1.1/',
+        'type'              => 'array',
+        ),
+      'ciadrextadr'         => array(
+        'name'              => 'CiAdrExtadr',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'struct',
+        'struct'            => 'CreatorContactInfo',
+        ),        
+      'ciemailwork'         => array(
+        'name'              => 'CiEmailWork',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'struct',
+        'struct'            => 'CreatorContactInfo',
+        ),        
+      'ciurlwork'           => array(
+        'name'              => 'CiUrlWork',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'struct',
+        'struct'            => 'CreatorContactInfo',
+        ),        
+      'scene'               => array(
+        'name'              => 'Scene',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'array',
+        ),        
+      'subjectcode'         => array(
+        'name'              => 'SubjectCode',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'array',
+        ),        
+      'hierarchicalsubject' => array(
+        'name'              => 'hierarchicalSubject',
+        'ns'                => 'http://ns.adobe.com/lightroom/1.0/',
+        'type'              => 'array',
+        ),        
+      'location'            => array(
+        'name'              => 'Location',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'property',
+        ),        
+      'credit'              => array(
+        'name'              => 'Credit',
+        'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
+        'type'              => 'property',
+      ),
+      'countrycode'         => array(
+        'name'              => 'CountryCode',
+        'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
+        'type'              => 'property',
+      ),
+    );
+  }
+}  

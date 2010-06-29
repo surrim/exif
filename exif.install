@@ -1,0 +1,54 @@
+<?php
+// $Id$
+/**
+ * @file the install part of the module
+*/
+
+/**
+ * Implementation of hook_install().
+ */
+function exif_install() {
+    set_variable('exif_update',TRUE);
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function exif_uninstall() {
+    del_variable('exif_update');
+}
+
+/**
+ * implementation of hook_requirements
+ * @param $phase
+ */
+function exif_requirements($phase) {
+  $t = get_t();
+  $requirements = array();
+  if ($phase == 'runtime' || $phase == 'install') {
+    if (!function_exists('exif_read_data')) {
+      $requirements['exif_read_data'] = array(
+        'title' => $t('Function exif_read_data not available'),
+        'value' => $t('The Function exif_read_data is not available on the system.'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    if (!function_exists('iptcparse')) {
+      $requirements['iptcparse'] = array(
+        'title' => $t('Function iptcparse not available'),
+        'value' => $t('The Function iptcparse is not available on the system.'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }    
+    if (!function_exists('GetImageSize')) {
+      $requirements['GetImageSize'] = array(
+        'title' => $t('Function GetImageSize not available'),
+        'value' => $t('The Function GetImageSize is not available on the system.'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }     
+    
+    
+  }  
+  return $requirements;
+}
