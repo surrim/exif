@@ -3,7 +3,8 @@
 
 /**
  *
- * @author Raphael SchÃ¤r
+ * @author Jean-Philippe Hautin
+ * @author Raphael Schär
  * This is a helper class to handle the whole data processing of exif
  *
  */
@@ -23,7 +24,7 @@ Class Exif {
     return self::$instance;
   }
   
-  public function getMetadataSections() {
+  public static function getMetadataSections() {
   	$sections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc', 'xmp');
   	return $sections;
   }
@@ -68,10 +69,13 @@ Class Exif {
     }  	
   	$data1 = $this->readExifTags($file,$enable_sections);  	
   	$data2 = $this->readIPTCTags($file,$enable_sections);
-//  	$data3 = $this->readXMPTags($file,$arTagNames,$arOptions);
-//  	$result = array_merge ( $data1, $data2, $data3);
-	$arSmallMetadata = array_merge ( $data1, $data2 );
-	return $arSmallMetadata;
+    if (class_exists('SXMPFiles')) {
+	  $data3 = $this->readXMPTags($file,$enable_sections);
+	  $data = array_merge($data1, $data2, $data3);
+	} else {
+		$data = array_merge($data1, $data2);
+	}
+	return $data;
   }
   
 function filterMetadataTags($arSmallMetadata, $arTagNames) {

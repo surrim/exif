@@ -47,8 +47,13 @@ function exif_requirements($phase) {
         'severity' => REQUIREMENT_ERROR,
       );
     }     
-    
-    
+    if (!class_exists('SXMPFiles')) {
+      $requirements['SXMPFiles'] = array(
+        'title' => $t('Functions SXMP are not available'),
+        'value' => $t('Functions SXMP are not available on the system.'),
+        'severity' => REQUIREMENT_WARNING,
+      );
+    }
   }  
   return $requirements;
 }
