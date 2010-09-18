@@ -20,7 +20,7 @@ function exif_menu() {
   $items['admin/config/media/exif'] = array(
     'title' => 'Image Metadata',
     'page callback' => 'exif_admin_settings',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('Administer image metadata'),
     'description' => t('Display available fields'),
     'access callback' => 'user_access',
     'file' => 'exif.admin.inc',
@@ -29,12 +29,12 @@ function exif_menu() {
   $items['admin/config/media/exif/general'] = array(
     'title' => 'Image Metadata',
     'page callback' => 'exif_admin_settings',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('Administer image metadata'),
     'description' => t('Display available fields'),
     'access callback' => 'user_access',
     'file' => 'exif.admin.inc',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-  );	
+  );
   $items['admin/config/media/exif/config'] = array(
     'title' => 'Image Metadata fields settings',
     'page callback' => 'drupal_get_form',
@@ -43,7 +43,7 @@ function exif_menu() {
     'description' => t('Images Metadata Settings'),
     'access callback' => 'user_access',
   	'file' => 'exif.admin.inc',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK,
   );
   return $items;
 }
@@ -52,7 +52,7 @@ function exif_menu() {
  * Implements hook_help().
  */
 function exif_help($path, $arg) {
-	include_once drupal_get_path('module', 'exif'). '/exif.admin.inc';
+  include_once drupal_get_path('module', 'exif'). '/exif.admin.inc';
   switch ($path) {
     case 'admin/help#exif':	return exif_admin_settings();
   }
@@ -259,13 +259,13 @@ function exif_field_attach_presave($obj_type, $object) {
  */
 function exif_field_attach_form($obj_type, $object, &$form, &$form_state, $langcode) {
   if ($obj_type == 'node') {
-  	include_once drupal_get_path('module', 'exif') .'/exif.class.php';
+    include_once drupal_get_path('module', 'exif') .'/exif.class.php';
     foreach ($form as $key => $value) {
       $sections = Exif::getMetadataSections();
       foreach ($sections as $key2 => $value2 ) {
-	    if (_exif_startswith($key,"field_".$value2."_") || _exif_startswith($key,"field_".$value2."_") ) {
-	      unset($form[$key]);
-	    }      	
+        if (_exif_startswith($key,"field_".$value2."_") || _exif_startswith($key,"field_".$value2."_") ) {
+          unset($form[$key]);
+        }
       }
     }
   }
@@ -378,9 +378,9 @@ function _exif_get_image_field($fields) {
 
 function _exif_get_image_language($node,$field) {
   if (array_key_exists($node->language,$field)) {
-    return $node->language;    
+    return $node->language;
   } else   if (array_key_exists('und',$field)) {
-    return 'und'; 
+    return 'und';
   } else {
     return FALSE;
   }
@@ -410,7 +410,7 @@ function _exif_reformat($data) {
   foreach ($data as $key => &$value) {
     if (is_array($value))  {
       $value = array_change_key_case($value, CASE_LOWER);
-      
+
     }
     if ($key == 'gps_latitude') {
       $value = _exif_reformat_DMS2D(check_plain($value), $data['gps_gpslatituderef']);
@@ -429,7 +429,7 @@ function _exif_reformat($data) {
       $value = implode("T", $date_time);
     } elseif ($key == 'usercomment') {
       if (_exif_startswith($value,'UNICODE')) {
-      	$value=substr($value,7);
+        $value=substr($value,7);
       }
     }
   }
@@ -494,7 +494,7 @@ function _exif_get_class() {
 //    $fields = $info['fields'];
 //    //get the path to the image
 //    $image_path = _exif_get_image_path($fields, $node);
-//    
+//
 //    dsm("start reading");
 //    $iptc_values = $exif->readIPTCTags($image_path, array(), array('style' => 'fullSmall'));
 //    dsm($iptc_values);

@@ -2,20 +2,20 @@
 // $Id$
 /**
  * @file the install part of the module
-*/
+ */
 
 /**
  * Implementation of hook_install().
  */
 function exif_install() {
-    set_variable('exif_update',TRUE);
+  set_variable('exif_update',TRUE);
 }
 
 /**
  * Implementation of hook_install().
  */
 function exif_uninstall() {
-    del_variable('exif_update');
+  del_variable('exif_update');
 }
 
 /**
@@ -39,14 +39,14 @@ function exif_requirements($phase) {
         'value' => $t('The Function iptcparse is not available on the system.'),
         'severity' => REQUIREMENT_ERROR,
       );
-    }    
+    }
     if (!function_exists('GetImageSize')) {
       $requirements['GetImageSize'] = array(
         'title' => $t('Function GetImageSize not available'),
         'value' => $t('The Function GetImageSize is not available on the system.'),
         'severity' => REQUIREMENT_ERROR,
       );
-    }     
+    }
     if (!class_exists('SXMPFiles')) {
       $requirements['SXMPFiles'] = array(
         'title' => $t('Functions SXMP are not available'),
@@ -54,6 +54,6 @@ function exif_requirements($phase) {
         'severity' => REQUIREMENT_WARNING,
       );
     }
-  }  
+  }
   return $requirements;
 }

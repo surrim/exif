@@ -4,7 +4,7 @@
 /**
  *
  * @author Jean-Philippe Hautin
- * @author Raphael Schär
+ * @author Raphael Schï¿½r
  * This is a helper class to handle the whole data processing of exif
  *
  */
@@ -23,10 +23,10 @@ Class Exif {
     }
     return self::$instance;
   }
-  
+
   public static function getMetadataSections() {
-  	$sections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc', 'xmp');
-  	return $sections;
+    $sections = array('exif', 'file', 'computed', 'ifd0', 'gps', 'winxp', 'iptc', 'xmp');
+    return $sections;
   }
 
   /**
@@ -66,28 +66,28 @@ Class Exif {
   public function readMetadataTags($file, $enable_sections = TRUE) {
     if (!file_exists($file)) {
       return array();
-    }  	
-  	$data1 = $this->readExifTags($file,$enable_sections);  	
-  	$data2 = $this->readIPTCTags($file,$enable_sections);
+    }
+    $data1 = $this->readExifTags($file,$enable_sections);
+    $data2 = $this->readIPTCTags($file,$enable_sections);
     if (class_exists('SXMPFiles')) {
-	  $data3 = $this->readXMPTags($file,$enable_sections);
-	  $data = array_merge($data1, $data2, $data3);
-	} else {
-		$data = array_merge($data1, $data2);
-	}
-	return $data;
+      $data3 = $this->readXMPTags($file,$enable_sections);
+      $data = array_merge($data1, $data2, $data3);
+    } else {
+      $data = array_merge($data1, $data2);
+    }
+    return $data;
   }
-  
-function filterMetadataTags($arSmallMetadata, $arTagNames) {
-	$info = array();
+
+  function filterMetadataTags($arSmallMetadata, $arTagNames) {
+    $info = array();
     foreach ($arTagNames as $tagName) {
       if (!empty($arSmallMetadata[$tagName['section']][$tagName['tag']])) {
         $info[$tagName['section']][$tagName['tag']] = $arSmallMetadata[$tagName['section']][$tagName['tag']];
       }
     }
-    return $info;  	
-}  
-  
+    return $info;
+  }
+
   /**
    * Read the Information from a picture according to the fields specified in CCK
    * @param $file
@@ -102,17 +102,17 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
     $exif = exif_read_data($file, 0,$enable_sections);
     $arSmallExif = array();
     foreach ((array)$exif as $key1 => $value1) {
-    	
-    	if (is_array($value1)) {
-    		$value2 = array ();
-    		foreach ((array)$value1 as $key3 => $value3) {
-    			$value[strtolower($key3)]= $value3 ;	
-    		}
-    	} else {
-    		$value = $value;
-    	}
+       
+      if (is_array($value1)) {
+        $value2 = array ();
+        foreach ((array)$value1 as $key3 => $value3) {
+          $value[strtolower($key3)]= $value3 ;
+        }
+      } else {
+        $value = $value;
+      }
       $arSmallExif[strtolower($key1)] = $value;
-      
+
     }
     return $arSmallExif;
   }
@@ -125,19 +125,19 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
 
   /**
    * Read IPTC tags.
-   * 
+   *
    * @param String $file
    * 	Path to image to read IPTC from
-   * 
+   *
    * @param array $arTagNames
    * 	An array of Strings that contain the IPTC to read
-   * 	If you leave this empty nothing will be returned, unless you select a special 
+   * 	If you leave this empty nothing will be returned, unless you select a special
    * 	return style in the $arOptions
-   * 
+   *
    * @param array $arOptions
    * 	The following options are possible:
    * 	style: fullSmall
-   * 	
+   *
    */
   public function readIPTCTags($file, $enable_sections) {
     $humanReadableKey = $this->getHumanReadableIPTCkey();
@@ -149,7 +149,7 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
         $resultTag = "";
         foreach ($value as $innerkey => $innervalue) {
           if( ($innerkey+1) != count($value) ) {
-             $resultTag .= $innervalue . ", ";     
+            $resultTag .= $innervalue . ", ";
           }
           else {
             $resultTag .= $innervalue;
@@ -159,9 +159,9 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
       }
     }
     if ($enable_sections) {
-    	return array ('iptc' => $arSmallIPTC);
+      return array ('iptc' => $arSmallIPTC);
     } else {
-    	return $arSmallIPTC;
+      return $arSmallIPTC;
     }
   }
 
@@ -199,9 +199,9 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
       $this->closeXMP($xmp);
     }
     if ($enable_sections) {
-    	return array ('xmp' => $info);
+      return array ('xmp' => $info);
     } else {
-    	return $info;
+      return $info;
     }
   }
 
@@ -237,7 +237,7 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
    * @param $xmp
    *   XMP array as returned from openXMP().
    */
-  function closeXMP($xmp) { 
+  function closeXMP($xmp) {
     $xmp['files']->CloseFile();
   }
 
@@ -268,7 +268,7 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
       }
       elseif ($config['type'] == 'array') {
         $value = @$xmpmeta->GetArrayItem($config['name'], $key, $config['ns']);
-      } 
+      }
       elseif ($config['type'] == 'struct') {
         $value = @$xmpmeta->GetStructField($config['ns'], $config['struct'], $config['ns'], $config['name']);
       }
@@ -361,95 +361,95 @@ function filterMetadataTags($arSmallMetadata, $arTagNames) {
         'name'              => 'Headline',
         'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
         'type'              => 'property',
-      ),
+    ),
       'authorsposition'     => array(
         'name'              => 'AuthorsPosition',
         'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
         'type'              => 'property',
-        ),
+    ),
       'source'              => array(
         'name'              => 'Source',
         'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
         'type'              => 'property',
-        ),
+    ),
       'instructions'        => array(
         'name'              => 'Instructions',
         'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
         'type'              => 'property',
-        ),
+    ),
       'subject'             => array(
         'name'              => 'subject',
         'ns'                => 'http://purl.org/dc/elements/1.1/',
         'type'              => 'array',
-        ),
+    ),
       'description'         => array(
         'name'              => 'description',
         'ns'                => 'http://purl.org/dc/elements/1.1/',
         'type'              => 'array',
-        ),
+    ),
       'creator'             => array(
         'name'              => 'creator',
         'ns'                => 'http://purl.org/dc/elements/1.1/',
         'type'              => 'array',
-        ),
+    ),
       'rights'              => array(
         'name'              => 'rights',
         'ns'                => 'http://purl.org/dc/elements/1.1/',
         'type'              => 'array',
-        ),
+    ),
       'title'              => array(
         'name'              => 'title',
         'ns'                => 'http://purl.org/dc/elements/1.1/',
         'type'              => 'array',
-        ),
+    ),
       'ciadrextadr'         => array(
         'name'              => 'CiAdrExtadr',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'struct',
         'struct'            => 'CreatorContactInfo',
-        ),        
+    ),
       'ciemailwork'         => array(
         'name'              => 'CiEmailWork',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'struct',
         'struct'            => 'CreatorContactInfo',
-        ),        
+    ),
       'ciurlwork'           => array(
         'name'              => 'CiUrlWork',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'struct',
         'struct'            => 'CreatorContactInfo',
-        ),        
+    ),
       'scene'               => array(
         'name'              => 'Scene',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'array',
-        ),        
+    ),
       'subjectcode'         => array(
         'name'              => 'SubjectCode',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'array',
-        ),        
+    ),
       'hierarchicalsubject' => array(
         'name'              => 'hierarchicalSubject',
         'ns'                => 'http://ns.adobe.com/lightroom/1.0/',
         'type'              => 'array',
-        ),        
+    ),
       'location'            => array(
         'name'              => 'Location',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'property',
-        ),        
+    ),
       'credit'              => array(
         'name'              => 'Credit',
         'ns'                => 'http://ns.adobe.com/photoshop/1.0/',
         'type'              => 'property',
-      ),
+    ),
       'countrycode'         => array(
         'name'              => 'CountryCode',
         'ns'                => 'http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/',
         'type'              => 'property',
-      ),
+    ),
     );
   }
-}  
+}
