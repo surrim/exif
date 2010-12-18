@@ -264,10 +264,10 @@ Class Exif {
     // Try to read XMP data if the namespace is available.
     if(@$xmpmeta->GetNamespacePrefix($config['ns'])) {
       if ($config['type'] == 'property') {
-        $value = @$xmpmeta->GetProperty($config['name'], $config['ns']);
+        $value = @$xmpmeta->GetProperty($config['ns'], $config['name']);
       }
       elseif ($config['type'] == 'array') {
-        $value = @$xmpmeta->GetArrayItem($config['name'], $key, $config['ns']);
+        $value = @$xmpmeta->GetArrayItem($key, $config['ns'], $config['name']);
       }
       elseif ($config['type'] == 'struct') {
         $value = @$xmpmeta->GetStructField($config['ns'], $config['struct'], $config['ns'], $config['name']);
