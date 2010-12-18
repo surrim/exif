@@ -71,12 +71,10 @@ function exif_permission() {
 
 function _exif_node_insert_update($node) {
   $fields = field_info_instances('node',$node->type);
-  //By default (and for now), module use the first field by alphabetic order in the default english language.
-  // TODO : make GUI to define which field to use to look for the photo.
-  //END
   if(_exif_check_for_exif_data($node->type)){
     $exif = _exif_get_class();
-    $ar_exif_fields = $exif->getMetadataFields( $fields);
+    $ar_exif_fields = _exif_filter_fields_on_widgets($fields);
+    $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
     $field_image_name = _exif_get_image_field($fields);
     //first simple case, image field not found.
     if ($field_image_name == FALSE) {
@@ -191,7 +189,6 @@ function _exif_handle_taxonomy_field($index,$language,$field_type,&$field_data,$
     $field_data[$language][$index]['tid'] = $term->tid;
   } else{
     //TODO: make auto-creation optional even if vocabulary exist.
-    //TODO: add option to choose vocabulary
     // if not exist, create it
     //store full metadata in vocabulary
     $vocabularies = taxonomy_get_vocabularies();
@@ -245,6 +242,10 @@ function exif_field_attach_presave($obj_type, $object) {
   if ($obj_type == 'node' && variable_get('exif_update', TRUE)) {
     _exif_node_insert_update($object);
   }
+}
+
+function exif_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
+
 }
 /**
  * implementation of hook_field_attach_form.
@@ -507,3 +508,166 @@ function _exif_get_class() {
 //    return $tokens;
 //  }
 //}
+
+
+
+//
+// NEW VERSION FOR CONFIGURING FIELD. USING NEW FIELD WIDGET API.
+//
+/**
+ * Implements hook_field_widget_info().
+ */
+function exif_field_widget_info() {
+  return array(
+    'exif_readonly' => array(
+      'label' => t('metadata from image'),
+      'description' => t('field content is calculated from image field in the same content type (read only)'),
+      'field types' => array('text', 'text_long','text_with_summary', 'taxonomy_term_reference'),
+      'settings' => array(
+        'image_field' => '',
+        'exif_field' => '',
+      ),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'defaul value' => FIELD_BEHAVIOR_DEFAULT,
+  ),
+  ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function exif_field_widget_info_alter(&$info) {
+  $info['options_select']['field types'] = array('text', 'text_long', 'taxonomy_term_reference');
+  $info['options_buttons']['field types'] = array('text', 'text_long', 'taxonomy_term_reference');
+}
+
+
+/**
+ * Implementation of hook_widget_settings().
+ */
+function exif_field_widget_settings_form($field, $instance) {
+  $widget   = $instance['widget'];
+  $defaults = field_info_widget_settings($widget['type']);
+  $settings = array_merge($defaults, $widget['settings']);
+
+  $form = array();
+  if ($widget['type'] == 'exif_readonly') {
+    //TODO must look for image field and create the list.
+    $image_fields = _exif_field_widget_retreive_image_field_from_bundle($instance['bundle']);
+    $exif_fields = _exif_field_widget_retreive_exif_fields();
+    $default_image_value = _exif_get_field_widget_retreive_image_field_default_value($widget,$image_fields);
+    $default_exif_value = _exif_get_field_widget_retreive_exif_field_default_value($widget,$image_fields);
+    $form['image_field'] = array(
+          '#type' => 'radios',
+          '#title' => t('image field to use to retreive data'),          
+          '#description' => t('determine the image used to look for exif and iptc metadata'),
+          '#options' => $image_fields,
+          '#default_value' => $default_image_value,
+          '#element_validate' => array('_exif_field_widget_image_field_validate'),
+    );
+    $form['exif_field'] = array(
+          '#type' => 'radios',
+          '#title' => t('exif field data'),
+          '#description' => t('These settings will automatically retreive data from the image field referenced.'),
+    	  '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
+          '#default_value' => $default_exif_value,
+    	  '#element_validate' => array('_exif_field_widget_exif_field_validate'),    
+    );
+  }
+  return $form;
+}
+
+/**
+ * calculate default value for settings form (more precisely image_field setting) of widget.
+ * @param $widget
+ * @param $image_fields
+ */
+function _exif_get_field_widget_retreive_image_field_default_value($widget,$image_fields) {
+  $result = $widget['settings']['image_field'];
+  if ( empty($result) ) {
+    $temp = array_keys($image_fields);
+    $result= $temp[0];
+  }
+  return $result;
+};
+
+/**
+ * calculate default value for settings form (more precisely exif_field setting) of widget.
+ * @param $widget
+ * @param $image_fields
+ */
+function _exif_get_field_widget_retreive_exif_field_default_value($widget,$exif_fields) {
+  $result = $widget['settings']['exif_field'];
+  if ( empty($result) ) {
+    $result='naming_convetion';
+  }
+  return $result;
+};
+
+/**
+ * Implementation of hook_field_widget_form().
+ */
+function exif_field_widget_form(&$form, &$form_state, $field, $items, $delta = 0) {
+  $element = array('#tree' => TRUE);
+  $field_name = $field['field_name'];
+  $field_name_exif = preg_replace('/^field_/', '', $field_name);
+  $referenced_nid = NULL;
+}
+
+/**
+ * retreive all image field fields of the same conteny type (bundle)
+ * @param $bundle_name
+ */
+function _exif_field_widget_retreive_image_field_from_bundle($bundle_name) {
+  $fields_of_bundle = field_info_instances('node',$bundle_name);
+  $result = array();
+  foreach ($fields_of_bundle as $key => $value) {
+    if (is_array($value) && is_array($value['widget']) && $value['widget']['type'] == 'image_image' ) {
+      $result[$key] = $value['label']." (".$key.")";
+    }
+  }
+  return $result;
+}
+ 
+
+function _exif_field_widget_retreive_exif_fields() {
+  return array('field_exif_model' => 'exif::model');
+}
+
+/**
+ * implementation of #element_validate FAPI Hook
+ */
+function _exif_field_widget_image_field_validate($element, &$form_state) {
+  $image_field_settings = $form_state['values']['instance']['widget']['settings']['image_field'];
+  if ( empty($image_field_settings) ) {
+    form_error($element, t('you must choose at least one image field to retreive metadata.'));
+  }
+
+}
+
+/**
+ * implementation of #element_validate FAPI Hook
+ */
+function _exif_field_widget_exif_field_validate($element, &$form_state) {
+  $exif_field_settings = $form_state['values']['instance']['widget']['settings']['exif_field'];
+  if ( empty($exif_field_settings) ) {
+    form_error($element, t('you must choose at least one method to retreive image metadata.'));
+  }
+}
+
+function _exif_filter_fields_on_widgets($fields_of_bundle) {
+  $result=array();
+  foreach ($fields_of_bundle as $key => $value) {
+    if ($value['widget']['type']=='exif_readonly') {
+      if ($value['widget']['settings']['exif_field'] == 'naming_convention') {
+        $name=$key;
+      } else {
+        $name=$value['widget']['settings']['exif_field'];
+      }      
+      $result[]=$name;
+    }
+  }
+  return $result;
+}

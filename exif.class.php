@@ -45,7 +45,7 @@ Class Exif {
     $arExif = array();
 
     foreach ($arCckFields as $field) {
-      $ar = explode("_", $field['field_name']);
+      $ar = explode("_", $field);
       if ($ar[0] == 'field' && isset($ar[1]) && in_array($ar[1], $arSections)) {
         unset($ar[0]);
         $section = $ar[1];
