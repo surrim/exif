@@ -35,7 +35,7 @@ function exif_menu() {
     'file' => 'exif.admin.inc',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/media/exif/config'] = array(
+  $items['admin/config/media/exif/settings'] = array(
     'title' => 'Image Metadata fields settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('exif_admin_settings_form'),
@@ -55,6 +55,7 @@ function exif_help($path, $arg) {
   include_once drupal_get_path('module', 'exif'). '/exif.admin.inc';
   switch ($path) {
     case 'admin/help#exif':	return exif_admin_settings();
+    case 'admin/help/exif':	return exif_admin_settings();
   }
 }
 
@@ -102,27 +103,29 @@ function _exif_node_insert_update($node) {
     $i = 0;
     foreach ($data as $section => $section_data) {
       $section_data=_exif_reformat($section_data);
-      foreach ($section_data as $key => $value) {
-        if ($value != NULL) {
-          $field_name = 'field_' . $section . "_" . $key;
-          $tmp = $node->$field_name;
-          if ($tmp == NULL) {
-            $tmp = array($language => array() );
+    }
+    foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
+      $field_name=$drupal_field;
+      $tmp = $node->$field_name;
+      if ($tmp == NULL) {
+        $tmp = array($language => array() );
+      }
+      $key=$metadata_field_descriptor['tag'];
+      $section=$metadata_field_descriptor['section'];
+      $value=$data[$section][$key];
+      if ($value != NULL) {
+        $value=_exif_prepare_date($key,$value);
+        $field_type=$fields[$field_name];
+        if (is_array($value)) {
+          $j = 0 ;
+          foreach($value as $innerkey => $innervalue) {
+            _exif_handle_field($j,$language,$field_type,$tmp,$section,$key,$innervalue);
+            $j++;
           }
-          $value=_exif_prepare_date($key,$value);
-          $field_type=$fields[$field_name];
-          if (is_array($value)) {
-            $j = 0 ;
-            foreach($value as $innerkey => $innervalue) {
-              _exif_handle_field($j,$language,$field_type,$tmp,$section,$key,$innervalue);
-              $j++;
-            }
-          } else {
-            _exif_handle_field(0,$language,$field_type,$tmp,$section,$key,$value);
-          }
-          $node->$field_name = $tmp;
-          $i++;
+        } else {
+          _exif_handle_field(0,$language,$field_type,$tmp,$section,$key,$value);
         }
+        $node->$field_name = $tmp;
       }
     }
   }
@@ -157,9 +160,9 @@ function _exif_prepare_date($exif_name,$value) {
  * @return unknown_type
  */
 function _exif_handle_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value) {
-  if ($field_type['widget']['module']=='text') {
+  if ($field_type['display']['default']['module']=='text') {
     _exif_handle_text_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
-  } else if ($field_type['widget']['module']=='taxonomy') {
+  } else if ($field_type['display']['default']['module']=='taxonomy') {
     _exif_handle_taxonomy_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
   }
 }
@@ -171,7 +174,7 @@ function _exif_handle_field($index,$language,$field_type,&$field_data,$exif_sect
  * @return unknown_type
  */
 function _exif_handle_text_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value) {
-  $field_data[$language][$index]['value'] = check_plain(utf8_encode($value));
+  $field_data[$language][$index]['value'] = check_plain(utf8_decode($exif_value));
 }
 
 /**
@@ -354,7 +357,6 @@ function _exif_date_handler($field, $exif_date) {
  * @return boolean
  */
 function _exif_check_for_exif_data($node_type) {
-
   $new_types = array();
   //fill up array with checked nodetypes
   foreach (variable_get('exif_nodetypes', array()) as $type) {
@@ -526,7 +528,7 @@ function exif_field_widget_info() {
       'settings' => array(
         'image_field' => '',
         'exif_field' => '',
-      ),
+  ),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
         'defaul value' => FIELD_BEHAVIOR_DEFAULT,
@@ -554,7 +556,6 @@ function exif_field_widget_settings_form($field, $instance) {
 
   $form = array();
   if ($widget['type'] == 'exif_readonly') {
-    //TODO must look for image field and create the list.
     $image_fields = _exif_field_widget_retreive_image_field_from_bundle($instance['bundle']);
     $exif_fields = _exif_field_widget_retreive_exif_fields();
     $default_image_value = _exif_get_field_widget_retreive_image_field_default_value($widget,$image_fields);
@@ -568,7 +569,7 @@ function exif_field_widget_settings_form($field, $instance) {
           '#element_validate' => array('_exif_field_widget_image_field_validate'),
     );
     $form['exif_field'] = array(
-          '#type' => 'radios',
+          '#type' => 'select',
           '#title' => t('exif field data'),
           '#description' => t('These settings will automatically retreive data from the image field referenced.'),
     	  '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
@@ -601,7 +602,7 @@ function _exif_get_field_widget_retreive_image_field_default_value($widget,$imag
 function _exif_get_field_widget_retreive_exif_field_default_value($widget,$exif_fields) {
   $result = $widget['settings']['exif_field'];
   if ( empty($result) ) {
-    $result='naming_convetion';
+    $result='naming_convention';
   }
   return $result;
 };
@@ -617,7 +618,7 @@ function exif_field_widget_form(&$form, &$form_state, $field, $items, $delta = 0
 }
 
 /**
- * retreive all image field fields of the same conteny type (bundle)
+ * retreive all image_field fields of the same content type (bundle)
  * @param $bundle_name
  */
 function _exif_field_widget_retreive_image_field_from_bundle($bundle_name) {
@@ -630,10 +631,15 @@ function _exif_field_widget_retreive_image_field_from_bundle($bundle_name) {
   }
   return $result;
 }
- 
 
+/**
+ * retreive all field keys possible
+ *
+ * @return unknown_type
+ */
 function _exif_field_widget_retreive_exif_fields() {
-  return array('field_exif_model' => 'exif::model');
+  $exif = _exif_get_class();
+  return $exif->getFieldKeys();
 }
 
 /**
@@ -662,11 +668,11 @@ function _exif_filter_fields_on_widgets($fields_of_bundle) {
   foreach ($fields_of_bundle as $key => $value) {
     if ($value['widget']['type']=='exif_readonly') {
       if ($value['widget']['settings']['exif_field'] == 'naming_convention') {
-        $name=$key;
+        $name=substr($key,6);
       } else {
         $name=$value['widget']['settings']['exif_field'];
-      }      
-      $result[]=$name;
+      }
+      $result[$key]=$name;
     }
   }
   return $result;
