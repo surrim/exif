@@ -8,14 +8,14 @@
  * Implementation of hook_install().
  */
 function exif_install() {
-  set_variable('exif_update',TRUE);
+  variable_set('exif_update',TRUE);
 }
 
 /**
  * Implementation of hook_install().
  */
 function exif_uninstall() {
-  del_variable('exif_update');
+  variable_del('exif_update');
 }
 
 /**
@@ -28,29 +28,29 @@ function exif_requirements($phase) {
   if ($phase == 'runtime' || $phase == 'install') {
     if (!function_exists('exif_read_data')) {
       $requirements['exif_read_data'] = array(
-        'title' => $t('Function exif_read_data not available'),
-        'value' => $t('The Function exif_read_data is not available on the system.'),
+        'title' => $t('EXIF library is not available'),
+        'description' => $t('The Function exif_read_data is not available on the system.'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
     if (!function_exists('iptcparse')) {
       $requirements['iptcparse'] = array(
-        'title' => $t('Function iptcparse not available'),
-        'value' => $t('The Function iptcparse is not available on the system.'),
+        'title' => $t('IPTC library is not available'),
+        'description' => $t('The Function iptcparse is not available on the system.'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
     if (!function_exists('GetImageSize')) {
       $requirements['GetImageSize'] = array(
-        'title' => $t('Function GetImageSize not available'),
-        'value' => $t('The Function GetImageSize is not available on the system.'),
+        'title' => $t('Image library is not available'),
+        'description' => $t('The Function GetImageSize is not available on the system.'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
     if (!class_exists('SXMPFiles')) {
       $requirements['SXMPFiles'] = array(
-        'title' => $t('Functions SXMP are not available'),
-        'value' => $t('Functions SXMP are not available on the system.'),
+        'title' => $t('XMP library is not available'),
+        'description' => $t('Functions SXMP are not available on the system.'),
         'severity' => REQUIREMENT_WARNING,
       );
     }
