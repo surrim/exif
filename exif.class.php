@@ -4,7 +4,7 @@
 /**
  *
  * @author Jean-Philippe Hautin
- * @author Raphael Sch�r
+ * @author Raphael Schär
  * This is a helper class to handle the whole data processing of exif
  *
  */
@@ -42,17 +42,16 @@ Class Exif {
    */
   public function getMetadataFields($arCckFields=array()) {
     $arSections = Exif::getMetadataSections();
-    $arExif = array();
-
-    foreach ($arCckFields as $drupal_field => $metadata_field) {
+    foreach ($arCckFields as $drupal_field => $metadata_settings) {
+      $metadata_field = $metadata_settings['metadata_field'];
       $ar = explode("_", $metadata_field);
       if (isset($ar[0]) && in_array($ar[0], $arSections)) {
         $section = $ar[0];
         unset($ar[0]);
-        $arExif[$drupal_field] = array('section'=>$section, 'tag'=>implode("_", $ar));
+        $arCckFields[$drupal_field]['metadata_field'] =  array('section'=>$section, 'tag'=>implode("_", $ar));
       }
     }
-    return $arExif;
+    return $arCckFields;
   }
 
   /**
@@ -79,7 +78,8 @@ Class Exif {
 
   function filterMetadataTags($arSmallMetadata, $arTagNames) {
     $info = array();
-    foreach ($arTagNames as $drupal_field => $tagName) {
+    foreach ($arTagNames as $drupal_field => $metadata_settings) {
+      $tagName = $metadata_settings['metadata_field'];
       if (!empty($arSmallMetadata[$tagName['section']][$tagName['tag']])) {
         $info[$tagName['section']][$tagName['tag']] = $arSmallMetadata[$tagName['section']][$tagName['tag']];
       }

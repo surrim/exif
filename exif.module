@@ -3,6 +3,7 @@
 
 /**
  * @author: Jean-Philippe Hautin
+ * 
  * Adapted from exif module by Raphael Schär - www.rapsli.ch, www.schaerwebdesign.ch
  * Changes:
  * - suppress need of 'sub-module' exif_helper
@@ -76,43 +77,27 @@ function _exif_node_insert_update($node) {
     $exif = _exif_get_class();
     $ar_exif_fields = _exif_filter_fields_on_widgets($fields);
     $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
-    $field_image_name = _exif_get_image_field($fields);
-    //first simple case, image field not found.
-    if ($field_image_name == FALSE) {
-      return FALSE;
-    }
-    //then check it is an array
-    if (!is_array($node->$field_image_name)) {
-      return FALSE;
-    }
-    $field_image = $node->$field_image_name;
-    $language = _exif_get_image_language($node,$field_image);
-    if ($language == FALSE) {
-      return FALSE;
-    }
-    $fid = _exif_get_image_fid($field_image,$language);
-    if ($fid == FALSE) {
-      return FALSE;
-    }
-    $file =  file_load($fid);
-    $absoluteFilePath = drupal_realpath($file->uri);
-    $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
-    $data = $exif->filterMetadataTags($fullmetadata,$ar_exif_fields);
-
+    $image_fields = _exif_get_image_fields($fields);
+    //first simple case, image fields not found.
+    $metadata_image_fields = _exif_get_image_fields_metadata($node,&$ar_exif_fields,$image_fields);
+//    foreach ($metadata_image_fields as $image_field => $fullmetadata ) {
+//      $data = $exif->filterMetadataTags($fullmetadata,$ar_exif_fields);
+//    }
     // prepare data to be stored in fields
-    $i = 0;
-    foreach ($data as $section => $section_data) {
-      $section_data=_exif_reformat($section_data);
-    }
+//    $i = 0;
+//    foreach ($data as $section => $section_data) {
+//      $section_data=_exif_reformat($section_data);
+//    }
     foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
       $field_name=$drupal_field;
       $tmp = $node->$field_name;
+      $language = $metadata_field_descriptor['language'];
       if ($tmp == NULL) {
         $tmp = array($language => array() );
       }
-      $key=$metadata_field_descriptor['tag'];
-      $section=$metadata_field_descriptor['section'];
-      $value=$data[$section][$key];
+      $key=$metadata_field_descriptor['metadata_field']['tag'];
+      $section=$metadata_field_descriptor['metadata_field']['section'];
+      $value=$metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
       if ($value != NULL) {
         $value=_exif_prepare_date($key,$value);
         $field_type=$fields[$field_name];
@@ -129,6 +114,46 @@ function _exif_node_insert_update($node) {
       }
     }
   }
+}
+
+
+function _exif_get_image_fields_metadata($node,&$ar_exif_fields,$image_fields) {
+  if (empty($ar_exif_fields)) {
+    return TRUE;
+  }
+  if (empty($image_fields)) {
+    return FALSE;
+  }
+  $exif = _exif_get_class();
+  foreach ($ar_exif_fields as $drupal_field => $metadata_settings) {
+    $field_image_name = $metadata_settings['image_field'];
+    if (empty($image_fields[$field_image_name])) {
+      $result[$field_image_name] = array();
+    } else {
+      //then check it is an array
+      if (!is_array($node->$field_image_name)) {
+        $result[$field_image_name] = array();
+      } else {
+        $field_image = $node->$field_image_name;
+        $language = _exif_get_image_language($node,$field_image);        
+        if ($language == FALSE) {
+          $result[$field_image_name] = array();
+        } else {
+          $ar_exif_fields[$drupal_field]['language']=$language;
+          $fid = _exif_get_image_fid($field_image,$language);
+          if ($fid == FALSE) {
+            $result[$field_image_name] = array();
+          } else {
+            $file =  file_load($fid);
+            $absoluteFilePath = drupal_realpath($file->uri);
+            $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
+            $result[$field_image_name]=$fullmetadata;
+          }
+        }
+      }
+    }
+  }
+  return $result;
 }
 
 /**
@@ -370,13 +395,14 @@ function _exif_check_for_exif_data($node_type) {
   return FALSE;
 }
 
-function _exif_get_image_field($fields) {
+function _exif_get_image_fields($fields) {
+  $result = array();
   foreach ($fields as $key => $value) {
     if (is_array($value) && is_array($value['widget']) && $value['widget']['type'] == 'image_image' ) {
-      return $key;
+      $result[$key]=$value;
     }
   }
-  return FALSE;
+  return $result;
 }
 
 function _exif_get_image_language($node,$field) {
@@ -667,12 +693,15 @@ function _exif_filter_fields_on_widgets($fields_of_bundle) {
   $result=array();
   foreach ($fields_of_bundle as $key => $value) {
     if ($value['widget']['type']=='exif_readonly') {
+      $element = array();
       if ($value['widget']['settings']['exif_field'] == 'naming_convention') {
         $name=substr($key,6);
       } else {
         $name=$value['widget']['settings']['exif_field'];
       }
-      $result[$key]=$name;
+      $element['metadata_field']=$name;
+      $element['image_field']=$value['widget']['settings']['image_field'];
+      $result[$key]=$element;
     }
   }
   return $result;
