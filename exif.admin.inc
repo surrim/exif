@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * Just some help page. Gives you an overview over the available tags
