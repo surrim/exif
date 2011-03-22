@@ -29,6 +29,7 @@ function exif_requirements($phase) {
       $requirements['exif_read_data'] = array(
         'title' => $t('EXIF library is not available'),
         'description' => $t('The Function exif_read_data is not available on the system. Please ensure the PHP module named EXIF has been installed.'),
+        'value' => $t('EXIF library is not available'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
@@ -36,6 +37,7 @@ function exif_requirements($phase) {
       $requirements['iptcparse'] = array(
         'title' => $t('IPTC library is not available'),
         'description' => $t('The Function iptcparse is not available on the system. Please ensure the PHP module named GD has been installed.'),
+        'value' => $t('GD library is not available'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
@@ -43,6 +45,7 @@ function exif_requirements($phase) {
       $requirements['GetImageSize'] = array(
         'title' => $t('Image library is not available'),
         'description' => $t('The Function GetImageSize is not available on the system. Please ensure the PHP module named GD has been installed.'),
+        'value' => $t('GD library is not available'),
         'severity' => REQUIREMENT_ERROR,
       );
     }
@@ -50,6 +53,7 @@ function exif_requirements($phase) {
       $requirements['SXMPFiles'] = array(
         'title' => $t('XMP library is not available'),
         'description' => $t('Functions SXMP are not available on the system. XMP metadata will not be extracted.'),
+        'value' => $t('SXMP library is not available'),        
         'severity' => REQUIREMENT_WARNING,
       );
     }
