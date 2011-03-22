@@ -703,7 +703,8 @@ Class Exif {
       "2#005" => "object_name",
       "2#004" => "object_attribute_reference",
       "2#003" => "object_type_reference",
-      "2#000" => "record_version"
+      "2#000" => "record_version",
+      "1#090" => "envelope_character_set"    
       );
   }
 
