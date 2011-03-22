@@ -416,8 +416,12 @@ function _exif_get_image_language($node,$field) {
 }
 
 function _exif_get_image_fid($field,$language) {
-  if (is_array($field[$language]) && is_array($field[$language][0]) ) {
-    $localized_field=$field[$language][0];
+  if (is_array($field[$language])) {
+    if (!empty($field[$language]) && is_array($field[$language][0])) {
+      $localized_field=$field[$language][0];
+    } else {
+      return FALSE;
+    }
   } else  {
     return FALSE;
   }
