@@ -17,7 +17,7 @@ Class Exif {
   private function __construct() {
   }
 
-  public function getInstance() {
+  public static function getInstance() {
     if(is_null(self::$instance)) {
       self::$instance = new self;
     }
