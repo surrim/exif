@@ -115,6 +115,23 @@ function exif_admin_settings_form() {
     '#description' => t('Select nodetypes which should be checked for itpc & exif data. In case the nodetypes contains more than one image field, the module will use the first one.'),
   );
 
+  if (module_exists("media")) {
+    $all_mt = array();
+    // Setup media types
+    $types = media_type_get_types();
+    foreach ($types as $key) {
+      $all_mt[$key->name] = $key->name;
+    }
+    $forms['exif_mediatypes'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Mediatypes'),
+      '#options' => $all_mt,
+      '#default_value' => variable_get('exif_mediatypes', array()),
+      '#description' => t('Select mediatypes which should be checked for itpc & exif data.'),
+    );
+  }
+
+
   $forms['exif_update'] = array(
     '#type' => 'checkbox',
     '#title' => t('Refresh on node update'),
