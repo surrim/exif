@@ -82,7 +82,10 @@ function _exif_node_insert_update($object_type,$object) {
     $metadata_image_fields = _exif_get_image_fields_metadata($object_type,$object,$ar_exif_fields,$image_fields);
     foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
       $field_name=$drupal_field;
-      $tmp = $object->$field_name;
+      $tmp = NULL;
+      if (property_exists($object, $field_name)) {
+        $tmp = $object->$field_name;
+      }
       //TODO
       //Notice: Undefined property: stdClass::$field_exif_model in _exif_node_insert_update() (line 93 of modules\exif\exif.module).
       $language = $metadata_field_descriptor['language'];
@@ -91,7 +94,14 @@ function _exif_node_insert_update($object_type,$object) {
       }
       $key=$metadata_field_descriptor['metadata_field']['tag'];
       $section=$metadata_field_descriptor['metadata_field']['section'];
-      $value=$metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
+      if (
+      array_key_exists($section,$metadata_image_fields[$metadata_field_descriptor['image_field']])
+      && array_key_exists($key,$metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
+      ) {
+        $value=$metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
+      } else {
+        $value=NULL;
+      }
       if ($value != NULL) {
         $value=_exif_prepare_date($key,$value);
         $field_type=$fields[$field_name];
@@ -104,8 +114,8 @@ function _exif_node_insert_update($object_type,$object) {
         } else {
           _exif_handle_field(0,$language,$field_type,$tmp,$section,$key,$value);
         }
-        $object->$field_name = $tmp;
       }
+      $object->$field_name = $tmp;
     }
   }
 }
@@ -123,7 +133,7 @@ function _exif_get_image_fields_metadata($object_type,$node,&$ar_exif_fields,$im
   foreach ($ar_exif_fields as $drupal_field => $metadata_settings) {
     $field_image_name = $metadata_settings['image_field'];
     if (empty($image_fields[$field_image_name])) {
-			$result[$field_image_name] = array();
+      $result[$field_image_name] = array();
     } else {
       $image_descriptor=_exif_get_file_uri_and_language($node,$field_image_name);
       if ($image_descriptor == FALSE) {
@@ -286,7 +296,7 @@ function exif_field_attach_presave($obj_type, $object) {
 }
 
 function exif_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
-
+  //do nothing
 }
 /**
  * implementation of hook_field_attach_form.
@@ -429,10 +439,14 @@ function _exif_get_image_fields($object_type,$object,$fields) {
 }
 
 function _exif_get_image_language($node,$field) {
-  if (array_key_exists($node->language,$field)) {
-    return $node->language;
-  } else   if (array_key_exists('und',$field)) {
-    return 'und';
+  if (property_exists($node, 'language')) {
+    if (array_key_exists($node->language,$field)) {
+      return $node->language;
+    } else   if (array_key_exists('und',$field)) {
+      return 'und';
+    } else {
+      return FALSE;
+    }
   } else {
     return FALSE;
   }

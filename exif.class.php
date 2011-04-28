@@ -128,15 +128,6 @@ Class Exif {
    * @param String $file
    * 	Path to image to read IPTC from
    *
-   * @param array $arTagNames
-   * 	An array of Strings that contain the IPTC to read
-   * 	If you leave this empty nothing will be returned, unless you select a special
-   * 	return style in the $arOptions
-   *
-   * @param array $arOptions
-   * 	The following options are possible:
-   * 	style: fullSmall
-   *
    */
   public function readIPTCTags($file, $enable_sections) {
     $humanReadableKey = $this->getHumanReadableIPTCkey();
@@ -145,14 +136,10 @@ Class Exif {
     $arSmallIPTC = array();
     if (is_array($iptc)) {
       foreach ($iptc as $key => $value) {
-        $resultTag = "";
-        foreach ($value as $innerkey => $innervalue) {
-          if( ($innerkey+1) != count($value) ) {
-            $resultTag .= $innervalue . ", ";
-          }
-          else {
-            $resultTag .= $innervalue;
-          }
+        if (count($value)==1) {
+          $resultTag = $value[0];  
+        } else {
+          $resultTag = $value;
         }
         $arSmallIPTC[$humanReadableKey[$key]] = $resultTag;
       }
