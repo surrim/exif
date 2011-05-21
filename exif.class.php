@@ -54,6 +54,94 @@ Class Exif {
     return $arCckFields;
   }
 
+
+  /**
+   * Helper function to reformat fields where required.
+   *
+   * Some values (lat/lon) break down into structures, not strings.
+   * Dates should be parsed nicely.
+   */
+  function _reformat($data) {
+    $date_array = array('datetimeoriginal', 'datetime', 'datetimedigitized');
+
+    // Make the key lowercase as field names must be.
+    $data = array_change_key_case($data, CASE_LOWER);
+    foreach ($data as $key => &$value) {
+      if (is_array($value))  {
+        $value = array_change_key_case($value, CASE_LOWER);
+        foreach ($value as $innerkey => $innervalue) {
+          if (!drupal_validate_utf8($innervalue)) {
+            $innervalue=utf8_encode($innervalue);
+          }
+          $innervalue=check_plain($innervalue);
+        }
+      } else {
+        if ($key=='usercomment' && $this->startswith($value,'UNICODE')) {
+          $value=substr($value,8);
+        }
+        if ($key=='title' || $key=='comment' || $key=='usercomment' || $key=='comments' || $key=='author' || $key=='subject') {
+          $value=$this->_exif_reencode_to_utf8($value);
+        } elseif ($key == 'gps_latitude') {
+          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslatituderef']);
+        }
+        elseif ($key == 'gps_longitude') {
+          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslongituderef']);
+        }
+        elseif (in_array($key, $date_array)) {
+          // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
+          // which will look something like 2004-02-12T15:19:21
+          $date_time = explode(" ", $value);
+          $date_time[0] = str_replace(":", "-", $date_time[0]);
+          if (variable_get('exif_granularity', 0) == 1) {
+            $date_time[1] = "00:00:00";
+          }
+          $value = implode("T", $date_time);
+        } else {
+          if (!drupal_validate_utf8($value)) {
+            $value=utf8_encode($value);
+          }
+        }
+      }
+    }
+    return $data;
+  }
+
+  public function startswith($hay, $needle) {
+    return substr($hay, 0, strlen($needle)) === $needle;
+  }
+
+
+  function _exif_reencode_to_utf8($value)
+  {
+    $unicode_list=unpack("v*", $value)  ;
+    $result = "";
+    foreach($unicode_list as $key => $value) {
+      if ($value!=0) {
+        $one_character = pack("C", $value);
+        $temp = mb_convert_encoding('&#' . $value . ';', 'UTF-8', 'HTML-ENTITIES');
+        $result .= $temp;
+      }
+    }
+    return $result;
+  }
+
+  /**
+   * Helper function to change GPS co-ords into decimals.
+   */
+  function _exif_reformat_DMS2D($value, $ref) {
+    $parts = split('/', $value[0]);
+    $dec = (float) ((float) $parts[0] /  (float) $parts[1]);
+
+    $parts = split('/', $value[1]);
+    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 60);
+
+    $parts = split('/', $value[2]);
+    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 3600);
+
+    if ($ref == 'S' || $ref == 'W') $dec *= -1;
+    return $dec;
+  }
+
   /**
    * $arOptions liste of options for the method :
    * # enable_sections : (default : TRUE) retreive also sections.
@@ -72,6 +160,13 @@ Class Exif {
       $data = array_merge($data1, $data2, $data3);
     } else {
       $data = array_merge($data1, $data2);
+    }
+
+    if(is_array($data)){
+      foreach ($data as $section => $section_data) {
+        $section_data=$this->_reformat($section_data);
+        $data[$section]=$section_data;
+      }
     }
     return $data;
   }
@@ -108,7 +203,7 @@ Class Exif {
           $value[strtolower($key3)]= $value3 ;
         }
       } else {
-        $value = $value;
+        $value = $value1;
       }
       $arSmallExif[strtolower($key1)] = $value;
 
@@ -137,7 +232,7 @@ Class Exif {
     if (is_array($iptc)) {
       foreach ($iptc as $key => $value) {
         if (count($value)==1) {
-          $resultTag = $value[0];  
+          $resultTag = $value[0];
         } else {
           $resultTag = $value;
         }
@@ -263,8 +358,8 @@ Class Exif {
     return $value;
   }
 
-    public function getHumanReadableExifKeys() {
-     return array(
+  public function getHumanReadableExifKeys() {
+    return array(
 "file_filename",
 "file_filedatetime",
 "file_filesize",
@@ -624,9 +719,9 @@ Class Exif {
 "winxp_gpsaltitude",
 "winxp_interoperabilityindex",
 "winxp_interoperabilityversion",
-     );
-    }  
-  
+    );
+  }
+
   /**
    * Just some little helper function to get the iptc fields
    * @return array
@@ -803,14 +898,14 @@ Class Exif {
     ),
     );
   }
-  
+
   public function getFieldKeys() {
-    $exif_keys_temp = $this->getHumanReadableExifKeys();    
+    $exif_keys_temp = $this->getHumanReadableExifKeys();
     $exif_keys = array();
     foreach( $exif_keys_temp as $value ) {
       $exif_keys[$value] = $value;
     }
-    $iptc_keys_temp = array_values($this->getHumanReadableIPTCkey());    
+    $iptc_keys_temp = array_values($this->getHumanReadableIPTCkey());
     $iptc_keys = array();
     foreach( $iptc_keys_temp as $value ) {
       $current_value = "iptc_".$value;
@@ -825,6 +920,6 @@ Class Exif {
     $fields = array_merge($exif_keys,$iptc_keys,$xmp_keys);
     return $fields;
   }
-  
-  
+
+
 }

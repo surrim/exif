@@ -222,7 +222,10 @@ function _exif_handle_field($index,$language,$field_type,&$field_data,$exif_sect
  * @return unknown_type
  */
 function _exif_handle_text_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value) {
-  $field_data[$language][$index]['value'] = check_plain(utf8_decode($exif_value));
+  if (!drupal_validate_utf8($exif_value)) {
+    $exif_value=utf8_encode($exif_value);
+  }
+  $field_data[$language][$index]['value'] = check_plain($exif_value);
 }
 
 /**
@@ -275,7 +278,10 @@ function _exif_handle_taxonomy_field($index,$language,$field_type,&$field_data,$
 function _exif_create_term($vid,$name,$parent_term = 0) {
   $term = new stdClass();
   $term->vid=$vid;
-  $term->name=check_plain(utf8_encode($name));
+  if (!drupal_validate_utf8($text)) {
+    $text=utf8_encode($text);
+  }
+  $term->name=check_plain($text);
   $term->parent=array($parent_term);
   taxonomy_term_save($term);
   return $term;
@@ -314,8 +320,9 @@ function exif_field_attach_form($obj_type, $object, &$form, &$form_state, $langc
     include_once drupal_get_path('module', 'exif') .'/exif.class.php';
     foreach ($form as $key => $value) {
       $sections = Exif::getMetadataSections();
+      $exif = _exif_get_class();
       foreach ($sections as $key2 => $value2 ) {
-        if (_exif_startswith($key,"field_".$value2."_") || _exif_startswith($key,"field_".$value2."_") ) {
+        if ($exif->startswith($key,"field_".$value2."_") || $exif->startswith($key,"field_".$value2."_") ) {
           unset($form[$key]);
         }
       }
@@ -323,9 +330,6 @@ function exif_field_attach_form($obj_type, $object, &$form, &$form_state, $langc
   }
 }
 
-function _exif_startswith($hay, $needle) {
-  return substr($hay, 0, strlen($needle)) === $needle;
-}
 
 /**
  * Date API hook.
@@ -467,63 +471,6 @@ function _exif_get_image_fid($field,$language) {
 }
 
 /**
- * Helper function to reformat fields where required.
- *
- * Some values (lat/lon) break down into structures, not strings.
- * Dates should be parsed nicely.
- */
-function _exif_reformat($data) {
-  $date_array = array('datetimeoriginal', 'datetime', 'datetimedigitized');
-
-  // Make the key lowercase as field names must be.
-  $data = array_change_key_case($data, CASE_LOWER);
-  foreach ($data as $key => &$value) {
-    if (is_array($value))  {
-      $value = array_change_key_case($value, CASE_LOWER);
-
-    }
-    if ($key == 'gps_latitude') {
-      $value = _exif_reformat_DMS2D(check_plain($value), $data['gps_gpslatituderef']);
-    }
-    elseif ($key == 'gps_longitude') {
-      $value = _exif_reformat_DMS2D(check_plain($value), $data['gps_gpslongituderef']);
-    }
-    elseif (in_array($key, $date_array)) {
-      // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
-      // which will look something like 2004-02-12T15:19:21
-      $date_time = explode(" ", $value);
-      $date_time[0] = str_replace(":", "-", $date_time[0]);
-      if (variable_get('exif_granularity', 0) == 1) {
-        $date_time[1] = "00:00:00";
-      }
-      $value = implode("T", $date_time);
-    } elseif ($key == 'usercomment') {
-      if (_exif_startswith($value,'UNICODE')) {
-        $value=substr($value,7);
-      }
-    }
-  }
-  return $data;
-}
-
-/**
- * Helper function to change GPS co-ords into decimals.
- */
-function _exif_reformat_DMS2D($value, $ref) {
-  $parts = split('/', $value[0]);
-  $dec = (float) ((float) $parts[0] /  (float) $parts[1]);
-
-  $parts = split('/', $value[1]);
-  $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 60);
-
-  $parts = split('/', $value[2]);
-  $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 3600);
-
-  if ($ref == 'S' || $ref == 'W') $dec *= -1;
-  return $dec;
-}
-
-/**
  * Helper function to get the exif class
  * @return Exif
  */
@@ -534,7 +481,7 @@ function _exif_get_class() {
 }
 
 /**
- * Implementation of hook_hoken_list
+ * Implementation of hook_token_list
  * @param array $type
  */
 //function fast_gallery_token_list($type = 'node') {
@@ -640,6 +587,7 @@ function exif_field_widget_settings_form($field, $instance) {
     if ($instance['entity_type'] == 'media') {
       $form['image_field'] = array(
 	          '#type' => 'hidden',
+      			'#default_value' => "file",
 	          '#value' => "file",
       );
     }
@@ -647,9 +595,9 @@ function exif_field_widget_settings_form($field, $instance) {
           '#type' => 'select',
           '#title' => t('exif field data'),
           '#description' => t('These settings will automatically retreive data from the image field referenced.'),
-    	  '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
+    	    '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
           '#default_value' => $default_exif_value,
-    	  '#element_validate' => array('_exif_field_widget_exif_field_validate'),    
+    	    '#element_validate' => array('_exif_field_widget_exif_field_validate'),    
     );
   }
   return $form;

@@ -57,22 +57,21 @@ function exif_admin_settings() {
   if(is_array($fullmetadata)){
     foreach ($fullmetadata as $section => $section_data) {
       $rows[] = array('data'=>array($section,$help), 'class' => array('tag_type'));
-      //$section_data=_exif_reformat($section_data);
       foreach ($section_data as $key => $value) {
-        if ($value != NULL && $value != '' && !_exif_startswith($key,'undefinedtag')) {
+        if ($value != NULL && $value != '' && !$exif->startswith($key,'undefinedtag')) {
           $resultTag = "";
           if (is_array($value)) {
-            foreach($value as $innerkey => $innervalue) {
-              if( ($innerkey+1) != count($value) )
-              $resultTag.=check_plain(utf8_decode($innervalue)).", ";
-              else
-              $resultTag.=check_plain(utf8_decode($innervalue));
+            foreach($value as $innerkey => $innervalue) {               
+              if( ($innerkey+1) != count($value) ) {
+                $resultTag.=$innervalue.", ";
+              } else {
+                $resultTag.=$innervalue;
+              }
             }
           } else {
-            //$resultTag=check_plain(utf8_encode($value));
-            $resultTag=check_plain(utf8_decode($value));
+            $resultTag=check_plain($value);
           }
-          $rows[] = array('data'=>array("field_".$section."_".$key,check_plain(utf8_decode($resultTag))), 'class' => array('tag'));
+          $rows[] = array('data'=>array("field_".$section."_".$key,$resultTag), 'class' => array('tag'));
         }
       }
     }
@@ -116,7 +115,7 @@ function exif_admin_settings_form() {
   );
 
   if (module_exists("media")) {
-    $all_mt = array();
+  	$all_mt = array();
     // Setup media types
     $types = media_type_get_types();
     foreach ($types as $key) {
