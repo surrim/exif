@@ -61,7 +61,7 @@ function exif_admin_settings() {
         if ($value != NULL && $value != '' && !$exif->startswith($key,'undefinedtag')) {
           $resultTag = "";
           if (is_array($value)) {
-            foreach($value as $innerkey => $innervalue) {               
+            foreach($value as $innerkey => $innervalue) {
               if( ($innerkey+1) != count($value) ) {
                 $resultTag.=$innervalue.", ";
               } else {
@@ -115,7 +115,7 @@ function exif_admin_settings_form() {
   );
 
   if (module_exists("media")) {
-  	$all_mt = array();
+    $all_mt = array();
     // Setup media types
     $types = media_type_get_types();
     foreach ($types as $key) {
@@ -158,6 +158,9 @@ function exif_admin_settings_form() {
 		'#default_value'=>variable_get('exif_vocabulary',array()),
 		'#description'=> t('Select vocabulary which should be used for itpc & exif data.'),
   );
+  //TODO: add a button to create a vocabulary "images'metadata" (exif,iptc and xmp data contains in jpef file)
+  //TODO : add a button to create an Photo node with default exif field (title,model,keywords) and default behavior but 'promoted to front'
+  //TODO : Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
   return system_settings_form($forms);
 }
 ?>

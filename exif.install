@@ -49,7 +49,7 @@ function exif_requirements($phase) {
         'severity' => REQUIREMENT_ERROR,
       );
     }
-      if (!function_exists('mb_convert_encoding')) {
+    if (!function_exists('mb_convert_encoding')) {
       $requirements['mb_convert_encoding'] = array(
         'title' => $t('Multibyte library is not available'),
         'description' => $t('The Function mb_convert_encoding is not available on the system. Please ensure the PHP module named php-mbstring has been installed.'),

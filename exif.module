@@ -21,7 +21,7 @@ function exif_menu() {
   $items['admin/config/media/exif'] = array(
     'title' => 'Image Metadata',
     'page callback' => 'exif_admin_settings',
-    'access arguments' => array('Administer image metadata'),
+    'access arguments' => array('administer image metadata'),
     'description' => t('Display available fields'),
     'access callback' => 'user_access',
     'file' => 'exif.admin.inc',
@@ -30,7 +30,7 @@ function exif_menu() {
   $items['admin/config/media/exif/general'] = array(
     'title' => 'Image Metadata',
     'page callback' => 'exif_admin_settings',
-    'access arguments' => array('Administer image metadata'),
+    'access arguments' => array('administer image metadata'),
     'description' => t('Display available fields'),
     'access callback' => 'user_access',
     'file' => 'exif.admin.inc',
@@ -40,7 +40,7 @@ function exif_menu() {
     'title' => 'Image Metadata fields settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('exif_admin_settings_form'),
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer image metadata'),
     'description' => t('Images Metadata Settings'),
     'access callback' => 'user_access',
   	'file' => 'exif.admin.inc',
@@ -71,6 +71,11 @@ function exif_permission() {
   );
 }
 
+/**
+ * Main entrypoint of the module.
+ * @param $object_type
+ * @param $object
+ */
 function _exif_node_insert_update($object_type,$object) {
   $type = $object->type;
   $fields = field_info_instances($object_type,$type);
@@ -86,8 +91,6 @@ function _exif_node_insert_update($object_type,$object) {
       if (property_exists($object, $field_name)) {
         $tmp = $object->$field_name;
       }
-      //TODO
-      //Notice: Undefined property: stdClass::$field_exif_model in _exif_node_insert_update() (line 93 of modules\exif\exif.module).
       $language = $metadata_field_descriptor['language'];
       if ($tmp == NULL) {
         $tmp = array($language => array() );
@@ -237,6 +240,9 @@ function _exif_handle_text_field($index,$language,$field_type,&$field_data,$exif
 function _exif_handle_taxonomy_field($index,$language,$field_type,&$field_data,$exif_section,$exif_name,$exif_value)  {
   //TODO : check if the vocabulary is the same as the field
   //look for the term
+  if (!drupal_validate_utf8($exif_value)) {
+    $exif_value=check_plain(utf8_encode($exif_value));
+  }  
   $terms = taxonomy_get_term_by_name($exif_value);
   if (is_array($terms) && count($terms)>0) {
     $term = array_shift($terms);
@@ -278,58 +284,24 @@ function _exif_handle_taxonomy_field($index,$language,$field_type,&$field_data,$
 function _exif_create_term($vid,$name,$parent_term = 0) {
   $term = new stdClass();
   $term->vid=$vid;
-  if (!drupal_validate_utf8($text)) {
-    $text=utf8_encode($text);
-  }
-  $term->name=check_plain($text);
+  $term->name=$name;
   $term->parent=array($parent_term);
   taxonomy_term_save($term);
   return $term;
 }
 
 /**
- * implementation of hook_field_attach_presave
+ * implementation of hook_field_attach_submit
  *
- * calculate value for metadata field and set them before storage.
+ * Calculate the value for each metadata field so they can be stored correctly.
+ * This function is called just before all the field_attach_presave function of modules.
  *
- * @param String $obj_type The type of $object; e.g. 'node' or 'user'.
- * @param $object The object with fields to save.
  */
-function exif_field_attach_presave($obj_type, $object) {
+function exif_field_attach_submit($obj_type, $object) {
   if ( ($obj_type == 'node'  || $obj_type == 'media') && variable_get('exif_update', TRUE)) {
     _exif_node_insert_update($obj_type,$object);
   }
 }
-
-function exif_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
-  //do nothing
-}
-/**
- * implementation of hook_field_attach_form.
- * remove metadata field from the form as it is programatically completed.
- *
- * @param $obj_type
- * @param $object
- * @param $form
- * @param $form_state
- * @param $langcode
- * @return unknown_type
- */
-function exif_field_attach_form($obj_type, $object, &$form, &$form_state, $langcode) {
-  if ($obj_type == 'node' || $obj_type == 'media') {
-    include_once drupal_get_path('module', 'exif') .'/exif.class.php';
-    foreach ($form as $key => $value) {
-      $sections = Exif::getMetadataSections();
-      $exif = _exif_get_class();
-      foreach ($sections as $key2 => $value2 ) {
-        if ($exif->startswith($key,"field_".$value2."_") || $exif->startswith($key,"field_".$value2."_") ) {
-          unset($form[$key]);
-        }
-      }
-    }
-  }
-}
-
 
 /**
  * Date API hook.
@@ -542,12 +514,12 @@ function exif_field_widget_info() {
       'settings' => array(
         'image_field' => '',
         'exif_field' => '',
-  ),
+      ),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
         'defaul value' => FIELD_BEHAVIOR_DEFAULT,
-  ),
-  ),
+      ),
+    ),
   );
 }
 
@@ -576,28 +548,28 @@ function exif_field_widget_settings_form($field, $instance) {
       $image_fields = _exif_field_widget_retreive_image_field_from_bundle($instance['entity_type'],$instance['bundle']);
       $default_image_value = _exif_get_field_widget_retreive_image_field_default_value($widget,$image_fields);
       $form['image_field'] = array(
-	          '#type' => 'radios',
-	          '#title' => t('image field to use to retreive data'),          
-	          '#description' => t('determine the image used to look for exif and iptc metadata'),
-	          '#options' => $image_fields,
-	          '#default_value' => $default_image_value,
-	          '#element_validate' => array('_exif_field_widget_image_field_validate'),
+        '#type' => 'radios',
+        '#title' => t('image field to use to retreive data'),          
+        '#description' => t('determine the image used to look for exif and iptc metadata'),
+        '#options' => $image_fields,
+        '#default_value' => $default_image_value,
+        '#element_validate' => array('_exif_field_widget_image_field_validate'),
       );
     }
     if ($instance['entity_type'] == 'media') {
       $form['image_field'] = array(
-	          '#type' => 'hidden',
-      			'#default_value' => "file",
-	          '#value' => "file",
+        '#type' => 'hidden',
+        '#default_value' => "file",
+        '#value' => "file",
       );
     }
     $form['exif_field'] = array(
-          '#type' => 'select',
-          '#title' => t('exif field data'),
-          '#description' => t('These settings will automatically retreive data from the image field referenced.'),
-    	    '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
-          '#default_value' => $default_exif_value,
-    	    '#element_validate' => array('_exif_field_widget_exif_field_validate'),    
+      '#type' => 'select',
+      '#title' => t('exif field data'),
+      '#description' => t('These settings will automatically retreive data from the image field referenced.'),
+      '#options' => array_merge(array('naming_convention' => 'name of the field is the exif field name'),$exif_fields),
+      '#default_value' => $default_exif_value,
+      '#element_validate' => array('_exif_field_widget_exif_field_validate'),    
     );
   }
   return $form;
@@ -633,11 +605,14 @@ function _exif_get_field_widget_retreive_exif_field_default_value($widget,$exif_
 /**
  * Implementation of hook_field_widget_form().
  */
-function exif_field_widget_form(&$form, &$form_state, $field, $items, $delta = 0) {
-  $element = array('#tree' => TRUE);
-  $field_name = $field['field_name'];
-  $field_name_exif = preg_replace('/^field_/', '', $field_name);
-  $referenced_nid = NULL;
+function exif_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $element_info = element_info($field['type']);
+  $element += array(
+    '#type' => '#hidden',
+    '#value' => '',
+    '#process' => array_merge(array('exif_field_readonly_widget_process')),
+  );
+  return $element;
 }
 
 /**
@@ -702,4 +677,33 @@ function _exif_filter_fields_on_widgets($fields_of_bundle) {
     }
   }
   return $result;
+}
+
+function exif_field_widget_error($element, $error, $form, &$form_state) {
+  form_error($element, $error['message']);
+}
+
+function exif_field_widget_validate($element, &$form_state) {
+  //DO NOT CHANGE VALIDATION.
+}
+
+/**
+ * callback function call when a element of type exif_readonly is used.
+ * handler added to element_info in exif_field_widget_form.
+ * handle image metadata widget fields
+ * @see exif_field_widget_form
+ * @param unknown_type $element
+ * @param unknown_type $form_state
+ * @param unknown_type $form
+ */
+function exif_field_readonly_widget_process($element, &$form_state, $form) {
+  $instance = field_widget_instance($element, $form_state);
+  $settings = $instance['settings'];
+  $widget_settings = $instance['widget']['settings'];
+
+  $element['tid'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+  return $element;
 }
