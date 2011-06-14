@@ -68,7 +68,7 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
   function getLastFileId() {
     return (int) db_query('SELECT MAX(fid) FROM {file_managed}')->fetchField();
   }
-  public function addNewFieldToContentType($contenttype,$fieldLabel,$fieldName,$fieldType,$fieldWidget,$fieldSettings = array()) {
+  public function addNewFieldToContentType($contenttype,$fieldLabel,$fieldName,$fieldType,$fieldWidget,$fieldSettings = array(),$settings = array()) {
     $edit = array();
     $edit["fields[_add_new_field][label]"]=$fieldLabel;
     $edit["fields[_add_new_field][field_name]"]=$fieldName;
@@ -76,7 +76,7 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     $edit["fields[_add_new_field][widget_type]"]=$fieldWidget;
     $this->drupalPost("admin/structure/types/manage/{$contenttype->type}/fields",$edit,t("Save"));
     $this->drupalPost(NULL,$fieldSettings,"Save field settings");
-    $this->drupalPost(NULL,array(),"Save settings");
+    $this->drupalPost(NULL,$settings,"Save settings");
   }
 
 
@@ -150,11 +150,11 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
 
 	  $this->addExistingFieldToContentType($type,'photo','image','image_image');
 	  $this->addNewFieldToContentType($type,'model','exif_model','taxonomy_term_reference','exif_readonly');
-	  $this->addNewFieldToContentType($type,'keywords','iptc_keywords','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'keywords','iptc_keywords','text','exif_readonly',array(),array("field[cardinality]" => -1));
 	  $this->manageDisplay($type, "exif_model","inline","taxonomy_term_reference_link");
 	  $this->manageDisplay($type, "iptc_keywords","inline","text_plain");
 	  $this->activateMetadataOnObjectTypes(array($type->type));
-	   
+
 	  $this->drupalGet("admin/structure/types/manage/photo/fields");
 	  $this->drupalGet("node/add");
 	  $this->assertResponse(200, t('User is allowed to add content types.'),'Exif');
@@ -165,30 +165,8 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
    */
   public abstract function initModules();
 
-  //
-  //	public function testCreatePhotoNodeWithoutImage() {
-  //
-  //		$settings = array(
-  //          'type' => 'photo',
-  //          'title' => $this->randomName(32),
-  //		);
-  //		$node = $this->drupalCreateNode($settings);
-  //		$this->assertNotNull($node,"node created",'Exif');
-  //		$this->verbose('Node created: ' . var_export($node, TRUE));
-  //		$this->drupalGet("node/{$node->nid}/edit");
-  //		$this->assertResponse(200, t('User is allowed to edit the content.'),'Exif');
-  //		$this->assertText(t("@title", array('@title' => $settings['title'])), "Found title in edit form",'Exif');
-  //		$this->drupalPost(NULL,array(),t('Save'));
-  //		$this->assertResponse(200, t('trying to submit node.'),'Exif');
-  //		$this->assertNoText("The content on this page has either been modified by another user, or you have already submitted modifications using this form. As a result, your changes cannot be saved.",t('form has been correctly submitted'),'Exif');
-  //		$noedit = array();
-  //		$this->drupalGet("node/{$node->nid}");
-  //		$this->assertResponse(200, t('photography node edition is complete.'),'Exif');
-  //	}
 
-  public function testCreatePhotoNodeWithImage() {
-
-
+  public function testCreatePhotoNodeWithoutImage() {
     $settings = array(
           'type' => 'photo',
           'title' => $this->randomName(32),
@@ -197,6 +175,30 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     $this->assertNotNull($node,"node created",'Exif');
     $this->verbose('Node created: ' . var_export($node, TRUE));
     $this->drupalGet("node/{$node->nid}/edit");
+    $this->assertResponse(200, t('User is allowed to edit the content.'),'Exif');
+    $this->assertText(t("@title", array('@title' => $settings['title'])), "Found title in edit form",'Exif');
+    $this->drupalPost(NULL,array(),t('Save'));
+    $this->assertResponse(200, t('trying to submit node.'),'Exif');
+    $this->assertNoText("The content on this page has either been modified by another user, or you have already submitted modifications using this form. As a result, your changes cannot be saved.",t('form has been correctly submitted'),'Exif');
+    $noedit = array();
+    $this->drupalGet("node/{$node->nid}");
+    $this->assertResponse(200, t('photography node edition is complete.'),'Exif');
+  }
+
+  public function testCreatePhotoNodeWithImage() {
+    $settings = array(
+          'type' => 'photo',
+          'title' => $this->randomName(32),
+    );
+    $node = $this->drupalCreateNode($settings);
+    $this->assertNotNull($node,"node created",'Exif');
+    $this->verbose('Node created: ' . var_export($node, TRUE));
+    $this->drupalGet("node/{$node->nid}/edit");
+    //check field settings are hidden.
+    $this->assertRaw("exif.css");
+    //assert hiddent field are present
+    $this->assertField("field_iptc_keywords[und][0][tid]","hidden field keywords is present","Exif");
+    $this->assertField("field_exif_model[und][0][tid]","hidden field model is present","Exif");
     $this->assertResponse(200, t('User is allowed to edit the content.'),'Exif');
     $this->assertText(t("@title", array('@title' => $settings['title'])), "Found title in edit form",'Exif');
     $img_path = drupal_get_path('module', 'exif')."/sample.jpg";
@@ -220,8 +222,10 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     $this->assertText("model");
     $this->assertText("keywords");
     //check for values
-    $this->assertText("Canon EOS 350D DIGITAL");
-    $this->assertText("annika");
+    $this->assertText("Canon EOS 350D DIGITAL","model value is correct","Exif");
+    $this->assertText("annika","keyword n°1 is correct","Exif");
+    $this->assertText("geburtstag","keyword n°2 is correct","Exif");
+    $this->assertText("O'Brien","keyword n°3 is correct (apostrophe in text)","Exif");
   }
 
 }

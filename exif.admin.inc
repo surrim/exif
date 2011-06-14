@@ -5,7 +5,7 @@
  * @return string html
  */
 function exif_admin_settings() {
-  drupal_add_css(drupal_get_path('module', 'exif') .'/exif.css');
+  drupal_add_css(drupal_get_path('module', 'exif') .'/exif.admin.css');
   $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';
   $exif = _exif_get_class();
   $fullmetadata = $exif->readMetadataTags($filepath);
