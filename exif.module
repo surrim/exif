@@ -517,7 +517,7 @@ function exif_field_widget_info() {
       ),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
-        'defaul value' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
     ),
   );
