@@ -106,7 +106,6 @@ function _exif_node_insert_update($object_type,$object) {
         $value=NULL;
       }
       if ($value != NULL) {
-        $value=_exif_prepare_date($key,$value);
         $field_type=$fields[$field_name];
         if (is_array($value)) {
           $j = 0 ;
@@ -180,27 +179,6 @@ function _exif_get_data_from_file_uri($exif,$file_uri) {
   $absoluteFilePath = drupal_realpath($file_uri);
   $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
   return $fullmetadata;
-}
-
-/**
- * format value of exif value in case it is a date value.
- * @param unknown_type $exif_name
- * @param unknown_type $value
- * @return unknown_type
- */
-function _exif_prepare_date($exif_name,$value) {
-  //incase we get a datefield, we need to reformat it to the ISO 8601 standard:
-  //which will look something like 2004-02-12T15:19:21
-  $date_array = array('datetimeoriginal','datetime','datetimedigitized');
-  if(in_array($exif_name,$date_array)){
-    $date_time = explode(" ",$value);
-    $date_time[0] = str_replace(":","-",$date_time[0]);
-    if(variable_get('exif_granularity',0) == 1){
-      $date_time[1] = "00:00:00";
-    }
-    $value = implode("T",$date_time);
-  }
-  return $value;
 }
 
 /**

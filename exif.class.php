@@ -71,35 +71,57 @@ Class Exif {
         $value = array_change_key_case($value, CASE_LOWER);
         foreach ($value as $innerkey => $innervalue) {
           if (!drupal_validate_utf8($innervalue)) {
-            $innervalue=utf8_encode($innervalue);
+            $value[$innerkey] = utf8_encode($innervalue);
           }
-          $innervalue=check_plain($innervalue);
+          $value[$innerkey] = check_plain($innervalue);
         }
-      } else {
+        switch ($key) {
+          // GPS values
+          case 'gps_latitude':
+          case 'gps_longitude':
+          case 'gpslatitude':
+          case 'gpslongitude':
+            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
+            break;
+        }
+      }
+      else {
         if ($key=='usercomment' && $this->startswith($value,'UNICODE')) {
           $value=substr($value,8);
         }
-        if ($key=='title' || $key=='comment' || $key=='usercomment' || $key=='comments' || $key=='author' || $key=='subject') {
-          $value=$this->_exif_reencode_to_utf8($value);
-        } elseif ($key == 'gps_latitude') {
-          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslatituderef']);
-        }
-        elseif ($key == 'gps_longitude') {
-          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslongituderef']);
-        }
-        elseif (in_array($key, $date_array)) {
-          // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
-          // which will look something like 2004-02-12T15:19:21
-          $date_time = explode(" ", $value);
-          $date_time[0] = str_replace(":", "-", $date_time[0]);
-          if (variable_get('exif_granularity', 0) == 1) {
-            $date_time[1] = "00:00:00";
-          }
-          $value = implode("T", $date_time);
-        } else {
-          if (!drupal_validate_utf8($value)) {
-            $value=utf8_encode($value);
-          }
+        switch ($key) {
+          // String values.
+          case 'title':
+          case 'comment':
+          case 'usercomment':
+			if ($this->startswith($value,'UNICODE')) {
+				$value=substr($value,8);
+        	}
+          case 'comments':
+          case 'author':
+          case 'subject':
+            $value = $this->_exif_reencode_to_utf8($value);
+            break;
+          // Date values.
+          case 'datetimeoriginal':
+          case 'datetime':
+          case 'datetimedigitized':
+            // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
+            // which will look something like 2004-02-12T15:19:21
+            $date_time = explode(" ", $value);
+            $date_time[0] = str_replace(":", "-", $date_time[0]);
+            if (variable_get('exif_granularity', 0) == 1) {
+              $date_time[1] = "00:00:00";
+            }
+            $value = implode("T", $date_time);
+            break;
+          // GPS values.
+          case 'gpsaltitude':
+          case 'gpsimgdirection':
+            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
+            break;
+          default:
+            $value = utf8_encode($value);
         }
       }
     }
@@ -129,16 +151,19 @@ Class Exif {
    * Helper function to change GPS co-ords into decimals.
    */
   function _exif_reformat_DMS2D($value, $ref) {
-    $parts = split('/', $value[0]);
-    $dec = (float) ((float) $parts[0] /  (float) $parts[1]);
-
-    $parts = split('/', $value[1]);
-    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 60);
-
-    $parts = split('/', $value[2]);
-    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 3600);
-
-    if ($ref == 'S' || $ref == 'W') $dec *= -1;
+    if (!is_array($value)) {
+      $value = array($value);
+    }
+    $dec = 0;
+    $granularity = 0;
+    foreach ($value as $element) {
+      $parts = explode('/', $element);
+      $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / pow(60, $granularity));
+      $granularity++;
+    }
+    if ($ref == 'S' || $ref == 'W') {
+      $dec *= -1;
+    }
     return $dec;
   }
 
@@ -570,6 +595,8 @@ Class Exif {
 "gps_exifimagewidth",
 "gps_exifimagelength",
 "gps_interoperabilityoffset",
+"gps_gpsimgdirectionref",
+"gps_gpsimgdirection",
 "gps_focalplanexresolution",
 "gps_focalplaneyresolution",
 "gps_focalplaneresolutionunit",
