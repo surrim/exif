@@ -5,6 +5,9 @@
  * @return string html
  */
 function exif_admin_settings() {
+  $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';  
+  $url = url($filepath);
+	
   $output = '';
   $output .= '<h3>' . t('About') . '</h3>';
   $output .= '<p>' . t('The Exif module allows you :');
@@ -47,11 +50,15 @@ function exif_admin_settings() {
   $output .=  t('if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).');
   $output .= '</dd>';
   $output .= '</dl>';
-  $output .= '<h3>' . t('Example of field name and the metadata extracted') . '</h3>';
+  $output .= '<div class="sample-image">';
+  $output .= '<h3 class="sample-image">';
+  $output .= t('Example of field name and the metadata extracted');
+  $output .= '</h3>';
+  $output .= '<img class="sample-image" src="'.$url.'"/>';
+  $output .= '</div>';
   $rows = array();
   $help = '';
   drupal_add_css(drupal_get_path('module', 'exif') .'/exif.admin.css');
-  $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';
   $exif = _exif_get_class();
   $fullmetadata = $exif->readMetadataTags($filepath);  
   if(is_array($fullmetadata)){
@@ -78,7 +85,7 @@ function exif_admin_settings() {
   }
   $header = array(t('Key'),t('Value'));
   $output .= '<p>';
-  $variables = array ("header" => $header, "rows" => $rows, "attributes" => array(), "caption" => array(),"sticky" => array(), "colgroups" => array(), "empty" => array() );
+  $variables = array ("header" => $header, "rows" => $rows, "attributes" => array(), "caption" => "","sticky" => array(), "colgroups" => array(), "empty" => array() );
   $output .= theme_table($variables);
   $output .= '</p>';
   return $output;

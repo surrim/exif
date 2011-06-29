@@ -62,19 +62,11 @@ Class Exif {
    * Dates should be parsed nicely.
    */
   function _reformat($data) {
-    $date_array = array('datetimeoriginal', 'datetime', 'datetimedigitized');
-
     // Make the key lowercase as field names must be.
     $data = array_change_key_case($data, CASE_LOWER);
     foreach ($data as $key => &$value) {
       if (is_array($value))  {
         $value = array_change_key_case($value, CASE_LOWER);
-        foreach ($value as $innerkey => $innervalue) {
-          if (!drupal_validate_utf8($innervalue)) {
-            $value[$innerkey] = utf8_encode($innervalue);
-          }
-          $value[$innerkey] = check_plain($innervalue);
-        }
         switch ($key) {
           // GPS values
           case 'gps_latitude':
@@ -84,21 +76,14 @@ Class Exif {
             $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
             break;
         }
-      }
-      else {
+      } else {
         switch ($key) {
           // String values.
-          case 'title':
-          case 'comment':
           case 'usercomment':
 			if ($this->startswith($value,'UNICODE')) {
 				$value=substr($value,8);
         	}
-          case 'comments':
-          case 'author':
-          case 'subject':
-            $value = $this->_exif_reencode_to_utf8($value);
-            break;
+        	break;
           // Date values.
           case 'datetimeoriginal':
           case 'datetime':
@@ -117,8 +102,6 @@ Class Exif {
           case 'gpsimgdirection':
             $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
             break;
-          default:
-            $value = utf8_encode($value);
         }
       }
     }
