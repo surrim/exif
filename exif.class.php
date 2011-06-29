@@ -86,9 +86,6 @@ Class Exif {
         }
       }
       else {
-        if ($key=='usercomment' && $this->startswith($value,'UNICODE')) {
-          $value=substr($value,8);
-        }
         switch ($key) {
           // String values.
           case 'title':

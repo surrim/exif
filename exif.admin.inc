@@ -5,10 +5,6 @@
  * @return string html
  */
 function exif_admin_settings() {
-  drupal_add_css(drupal_get_path('module', 'exif') .'/exif.admin.css');
-  $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';
-  $exif = _exif_get_class();
-  $fullmetadata = $exif->readMetadataTags($filepath);
   $output = '';
   $output .= '<h3>' . t('About') . '</h3>';
   $output .= '<p>' . t('The Exif module allows you :');
