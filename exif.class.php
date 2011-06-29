@@ -241,7 +241,12 @@ Class Exif {
         } else {
           $resultTag = $value;
         }
-        $arSmallIPTC[$humanReadableKey[$key]] = $resultTag;
+        if (array_key_exists($key, $humanReadableKey)) {
+        	$humanKey = $humanReadableKey[$key];
+        	$arSmallIPTC[$humanKey] = $resultTag;
+        } else {
+        	$arSmallIPTC[$key] = $resultTag;
+        }
       }
     }
     if ($enable_sections) {
