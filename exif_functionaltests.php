@@ -237,7 +237,7 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     $this->assertText("geburtstag","keyword n°2 is correct","Exif");
     $this->assertText("O&#039;Brien","keyword n°3 is correct (apostrophe in text)","Exif");
     $this->assertText("51.2977","latitude is correct","Exif");
-    $this->assertText("12.220617","longitude is correct","Exif");
+    $this->assertText("12.2206","longitude is correct","Exif");
     $this->assertText("ich bin ein kleiner kommentar","comment is correct","Exif");
     $this->assertNoText("UNICODEich bin ein kleiner kommentar","comment is correct","Exif");
     $this->assertText("Raphael Schär","artist is correct","Exif");
