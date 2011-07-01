@@ -137,7 +137,7 @@ function _exif_get_image_fields_metadata($object_type,$node,&$ar_exif_fields,$im
     if (empty($image_fields[$field_image_name])) {
       $result[$field_image_name] = array();
     } else {
-      $image_descriptor=_exif_get_file_uri_and_language($node,$field_image_name);
+      $image_descriptor = _exif_get_file_uri_and_language($node, $field_image_name, $object_type);
       if ($image_descriptor == FALSE) {
         $fullmetadata=array();
       } else {
@@ -150,26 +150,31 @@ function _exif_get_image_fields_metadata($object_type,$node,&$ar_exif_fields,$im
   return $result;
 }
 
-function _exif_get_file_uri_and_language($node,$field_image_name) {
-  $result = array();
-  //then check it is an array
-  if (!is_array($node->$field_image_name)) {
-    return FALSE;
-  } else {
-    $field_image = $node->$field_image_name;
-    $language = _exif_get_image_language($node,$field_image);
-    if ($language == FALSE) {
+function _exif_get_file_uri_and_language($node, $field_image_name, $object_type) {
+  if ($object_type == 'node') {
+    $result = array();
+    //then check it is an array
+    if (!is_array($node->$field_image_name)) {
       return FALSE;
     } else {
-      $fid = _exif_get_image_fid($field_image,$language);
-      if ($fid == FALSE) {
+      $field_image = $node->$field_image_name;
+      $language = _exif_get_image_language($node, $field_image);
+      if ($language == FALSE) {
         return FALSE;
       } else {
-        $file =  file_load($fid);
-        $result['uri']=$file->uri;
-        $result['language']=$language;
+        $fid = _exif_get_image_fid($field_image, $language);
+        if ($fid == FALSE) {
+          return FALSE;
+        } else {
+          $file = file_load($fid);
+          $result['uri']=$file->uri;
+          $result['language']=$language;
+        }
       }
     }
+  } else if ($object_type == 'file') {
+      $result['uri']=$node->uri;
+      $result['language']='und';
   }
   return $result;
 }
@@ -269,14 +274,13 @@ function _exif_create_term($vid,$name,$parent_term = 0) {
 }
 
 /**
- * implementation of hook_field_attach_submit
+ * implementation of hook_field_attach_submit.
  *
  * Calculate the value for each metadata field so they can be stored correctly.
- * This function is called just before all the field_attach_presave function of modules.
  *
  */
 function exif_field_attach_submit($obj_type, $object) {
-  if ( ($obj_type == 'node'  || $obj_type == 'media') && variable_get('exif_update', TRUE)) {
+  if (($obj_type == 'node' || $obj_type == 'file') && variable_get('exif_update', TRUE)) {
     _exif_node_insert_update($obj_type,$object);
   }
 }
@@ -386,8 +390,8 @@ function _exif_get_image_fields($object_type,$object,$fields) {
       }
     }
   }
-  if ($object_type == 'media') {
-    $result['file']=$object->file;
+  if ($object_type == 'file') {
+    $result['file']=$object;
   }
   return $result;
 }
@@ -534,7 +538,7 @@ function exif_field_widget_settings_form($field, $instance) {
         '#element_validate' => array('_exif_field_widget_image_field_validate'),
       );
     }
-    if ($instance['entity_type'] == 'media') {
+    if ($instance['entity_type'] == 'file') {
       $form['image_field'] = array(
         '#type' => 'hidden',
         '#default_value' => "file",
@@ -562,7 +566,9 @@ function _exif_get_field_widget_retreive_image_field_default_value($widget,$imag
   $result = $widget['settings']['image_field'];
   if ( empty($result) ) {
     $temp = array_keys($image_fields);
-    $result= $temp[0];
+    if (!empty($temp) && is_array($temp)) {
+    	$result= $temp[0];
+    }
   }
   return $result;
 };
