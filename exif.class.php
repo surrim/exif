@@ -85,6 +85,9 @@ Class Exif {
         	}
         	break;
           // Date values.
+          case 'filedatetime':
+          	$value=date('c',$value);
+          	break;
           case 'datetimeoriginal':
           case 'datetime':
           case 'datetimedigitized':
