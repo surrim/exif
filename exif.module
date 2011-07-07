@@ -198,7 +198,7 @@ function _exif_handle_field($index,$language,$field_type,&$field_data,$exif_sect
     _exif_handle_text_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
   } else if ($field_type['display']['default']['module']=='taxonomy') {
     _exif_handle_taxonomy_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
-  } else if (in_array($field_type, array('date', 'datetime', 'datestamp'))) {
+  } else if ($field_type['display']['default']['module']=='date') {
     _exif_handle_date_field($index,$language,$field_type,$field_data,$exif_section,$exif_name,$exif_value);
   }
 }
@@ -226,8 +226,9 @@ function _exif_handle_date_field($index,$language,$field_type,&$field_data,$exif
   if (!drupal_validate_utf8($exif_value)) {
     $exif_value=check_plain(utf8_encode($exif_value));
   }
-  $timezone=$field['tz_handling'];
-  $date_datetime = new DateObject($exif_value,$timezone, variable_get('date_format_exif', 'Y:m:d H:i:s'));
+//  $timezone=$field['tz_handling'];
+  $date_datetime = new DateObject($exif_value,NULL, variable_get('date_format_exif', 'Y:m:d H:i:s'));
+  $timezone = $date_datetime->getTimezone();
   $offset= $date_datetime->getOffset();
   $date_datetime->setTimezone(timezone_open('UTC'));
   $date_field = $date_datetime->format($field['type']);
@@ -335,53 +336,6 @@ function exif_date_formats() {
   );
 }
 
-/**
- * Helper function to handle all date values from exif header. This is
- * designed for the date_api and date modules, but is compatible if these
- * aren't enabled.
- *
- * @param array $field
- *   The field definition for the matcing exif date
- * @param string $exif_date
- *   The date extracted from exif header.
- * @return array
- *   The field value array for delta = 0
- */
-function _exif_date_handler($field, $exif_date) {
-  if (! module_exists('date_api')) {
-    // Don't bother doing anything if the webmaster doesn't ...
-    return array('value' => $exif_date);
-  }
-
-  require_once drupal_get_path('module', 'date_api') .'/date_api_elements.inc';
-  $date_datetime = date_convert_from_custom($exif_date, variable_get('date_format_exif', 'Y:m:d H:i:s'));
-  if (! in_array($field['type'], array('date', 'datetime', 'datestamp'))) {
-    // Field is not a date field type, so we return a ISO-8601 representation
-    return array('value' => date_convert($date_datetime, DATE_DATETIME, DATE_ISO));
-  }
-
-  // Exif doesn't handles timezones, so we assume the exif date is in the
-  // timezone configured for this date field.  This means the exif date needs
-  // to be converted to UTC before it's stored.
-  $timezone = date_get_timezone($field['tz_handling']);
-  $date = date_make_date($date_datetime, $timezone, DATE_DATETIME, $field['granularity']);
-
-  // Store date offset before converting to UTC as this is lost when setting
-  // timezone to 'UTC'.
-  $offset = date_offset_get($date);
-  date_timezone_set($date, timezone_open('UTC'));
-
-  // Finally, convert the date object in UTC to a date according to the field
-  // type: DATE_ISO, DATE_DATETIME or DATE_UNIX.
-  $date_field = date_convert($date, DATE_OBJECT, $field['type']);
-  return array(
-    'value' => $date_field,
-    'value2' => $date_field,
-    'timezone' => $timezone,
-    'offset' => $offset,
-    'offset2' => $offset,
-  );
-}
 /**
  * Let's check if this node type contains an image field.
  *
@@ -716,5 +670,18 @@ function exif_field_readonly_widget_process($element, &$form_state, $form) {
     '#type' => 'hidden',
     '#value' => '',
   );
+  $element['value'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+  $element['timezone'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+  $element['value2'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+  
   return $element;
 }
