@@ -313,7 +313,7 @@ function _exif_create_term($vid,$name,$parent_term = 0) {
  * Calculate the value for each metadata field so they can be stored correctly.
  *
  */
-function exif_field_attach_submit($obj_type, $object) {
+function exif_field_attach_presave($obj_type, $object) {
   if (($obj_type == 'node' || $obj_type == 'file') && variable_get('exif_update', TRUE)) {
     _exif_node_insert_update($obj_type,$object);
   }
