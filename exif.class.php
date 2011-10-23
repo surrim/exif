@@ -105,6 +105,13 @@ Class Exif {
           case 'gpsimgdirection':
             $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
             break;
+          // Flash values.
+          case 'flash':
+            $flash_descriptions = $this->getFlashDescriptions();
+            if (isset($flash_descriptions[$value])) {
+              $value = $flash_descriptions[$value];
+            }
+            break;
         }
       }
     }
@@ -934,6 +941,36 @@ Class Exif {
     }
     $fields = array_merge($exif_keys,$iptc_keys,$xmp_keys);
     return $fields;
+  }
+
+  /**
+   * Convert 'Flash' values to their human-readable descriptions.
+   */
+  public function getFlashDescriptions() {
+    return array(
+      '0' => t('Flash did not fire.'),
+      '1' => t('Flash fired.'),
+      '5' => t('Strobe return light not detected.'),
+      '7' => t('Strobe return light detected.'),
+      '9' => t('Flash fired, compulsory flash mode'),
+      '13' => t('Flash fired, compulsory flash mode, return light not detected'),
+      '15' => t('Flash fired, compulsory flash mode, return light detected'),
+      '16' => t('Flash did not fire, compulsory flash mode'),
+      '24' => t('Flash did not fire, auto mode'),
+      '25' => t('Flash fired, auto mode'),
+      '29' => t('Flash fired, auto mode, return light not detected'),
+      '31' => t('Flash fired, auto mode, return light detected'),
+      '32' => t('No flash function'),
+      '65' => t('Flash fired, red-eye reduction mode'),
+      '69' => t('Flash fired, red-eye reduction mode, return light not detected'),
+      '71' => t('Flash fired, red-eye reduction mode, return light detected'),
+      '73' => t('Flash fired, compulsory flash mode, red-eye reduction mode'),
+      '77' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
+      '79' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
+      '89' => t('Flash fired, auto mode, red-eye reduction mode'),
+      '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
+      '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
+    );
   }
 
 
