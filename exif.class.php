@@ -65,7 +65,7 @@ Class Exif {
     // Make the key lowercase as field names must be.
     $data = array_change_key_case($data, CASE_LOWER);
     foreach ($data as $key => &$value) {
-      if (is_array($value))  {
+      if (!preg_match('/(longi|lati)tude$/',$key) && is_array($value))  {
         $value = array_change_key_case($value, CASE_LOWER);
         switch ($key) {
           // GPS values
