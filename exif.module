@@ -232,7 +232,9 @@ function _exif_handle_date_field($index,$language,$field,$field_type,&$field_dat
   if ($exif_name=='filedatetime') {
   	$format = DateObject::ATOM;
   } else {
-  	$format = variable_get('date_format_exif', 'Y:m:d H:i:s');
+  	//exif internal format do not handle timezone :( 
+  	//Using website timezone instead.
+  	$format = variable_get('date_format_exif', 'Y-m-d\TH:i:s');
   }
   $date_datetime = new DateObject($exif_value,NULL, $format);
   //change to requeted timezone
@@ -308,7 +310,7 @@ function _exif_create_term($vid,$name,$parent_term = 0) {
 }
 
 /**
- * implementation of hook_field_attach_submit.
+ * implementation of hook_field_attach_presave.
  *
  * Calculate the value for each metadata field so they can be stored correctly.
  *
