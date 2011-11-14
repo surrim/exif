@@ -114,7 +114,19 @@ Class Exif {
             if (isset($flash_descriptions[$value])) {
               $value = $flash_descriptions[$value];
             }
-            break;
+	    break;
+           // Exposure values.
+           case 'exposuretime':
+             if (strpos($value, '/') !== FALSE) {
+               $value = $this->_normalise_fraction($value) . 's';
+             }
+             break;
+           // Focal Length values.
+           case 'focallength':
+             if (strpos($value, '/') !== FALSE) {
+               $value = $this->_normalise_fraction($value) . 'mm';
+             }
+             break;
         }
       }
     }
@@ -139,6 +151,36 @@ Class Exif {
     }
     return $result;
   }
+
+   /**
+    * Normalise fractions.
+    */
+   function _normalise_fraction($fraction) {
+     $parts = explode('/', $fraction);
+     $top = $parts[0];
+     $bottom = $parts[1];
+ 
+     if ($top > $bottom) {
+       // Value > 1
+       if (($top % $bottom) == 0) {
+         $value = ($top / $bottom);
+       } else {
+         $value = round(($top / $bottom), 2);
+       }
+     } else if ($top == $bottom) {
+       // Value = 1
+       $value = '1';
+     } else {
+       // Value < 1
+       if ($top == 1) {
+         $value = '1/' . $bottom;
+       }
+       else {
+         $value = '1/' . round(($bottom / $top) ,0);
+       }
+     }
+     return $value;
+   }  
 
   /**
    * Helper function to change GPS co-ords into decimals.
