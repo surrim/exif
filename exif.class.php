@@ -159,7 +159,7 @@ Class Exif {
      $parts = explode('/', $fraction);
      $top = $parts[0];
      $bottom = $parts[1];
- 
+
      if ($top > $bottom) {
        // Value > 1
        if (($top % $bottom) == 0) {
@@ -180,7 +180,7 @@ Class Exif {
        }
      }
      return $value;
-   }  
+   }
 
   /**
    * Helper function to change GPS co-ords into decimals.
@@ -256,7 +256,7 @@ Class Exif {
     $exif = exif_read_data($file, 0,$enable_sections);
     $arSmallExif = array();
     foreach ((array)$exif as $key1 => $value1) {
-       
+
       if (is_array($value1)) {
         $value2 = array ();
         foreach ((array)$value1 as $key3 => $value3) {
@@ -327,23 +327,27 @@ Class Exif {
    *   Support for different array keys.
    */
   public function readXMPTags($file, $enable_sections = TRUE) {
-    // Get a CCK-XMP mapping.
-    $map  = $this->getXMPFields();
-    $xmp  = $this->openXMP($file);
+    SXMPFiles::Initialize();
+
+    // Get all available XMP tags and XMP data provided by current file
+    $xmpTags  = $this->getXMPFields();
+    $xmp      = $this->openXMP($file);
+
     $info = array();
 
     if ($xmp != FALSE) {
       // Iterate over XMP fields defined by CCK.
-      foreach ($arTagNames as $tagName) {
-        if ($tagName['section'] == "xmp") {
-          // Get XMP field.
-          $config                                          = $map[$tagName['tag']];
-          $field                                           = $this->readXMPItem($xmp, $config);
-          $info[$tagName['section'] .'_'. $tagName['tag']] = $field;
-        }
+      foreach ($xmpTags as $tagName => $tag) {
+        // Get XMP field.
+        $config = $tag;
+        $field  = $this->readXMPItem($xmp, $config);
+        $info[$tagName] = $field;
       }
+
       $this->closeXMP($xmp);
     }
+    SXMPFiles::Terminate();
+
     if ($enable_sections) {
       return array ('xmp' => $info);
     } else {
@@ -406,6 +410,8 @@ Class Exif {
     // Setup.
     $xmpfiles = $xmp['files'];
     $xmpmeta  = $xmp['meta'];
+    $value    = '';
+
 
     // Try to read XMP data if the namespace is available.
     if(@$xmpmeta->GetNamespacePrefix($config['ns'])) {
@@ -413,7 +419,7 @@ Class Exif {
         $value = @$xmpmeta->GetProperty($config['ns'], $config['name']);
       }
       elseif ($config['type'] == 'array') {
-        $value = @$xmpmeta->GetArrayItem($key, $config['ns'], $config['name']);
+        $value = @$xmpmeta->GetArrayItem($config['ns'], $config['name'], $key);
       }
       elseif ($config['type'] == 'struct') {
         $value = @$xmpmeta->GetStructField($config['ns'], $config['struct'], $config['ns'], $config['name']);
@@ -807,7 +813,7 @@ Class Exif {
       "2#135" => "language_identifier",
       "2#131" => "image_orientation",
       "2#130" => "image_type",
-      "2#125" => "rasterized_caption",    
+      "2#125" => "rasterized_caption",
       "2#122" => "writer",
       "2#120" => "caption",
       "2#118" => "contact",
@@ -827,7 +833,7 @@ Class Exif {
       "2#070" => "program_version",
       "2#065" => "originating_program",
       "2#063" => "digital_creation_time",
-      "2#062" => "digital_creation_date",   
+      "2#062" => "digital_creation_date",
       "2#060" => "creation_time",
       "2#055" => "creation_date",
       "2#050" => "reference_number",
@@ -843,9 +849,9 @@ Class Exif {
       "2#026" => "content_location_code",
       "2#025" => "keywords",
       "2#022" => "fixture_identifier",
-      "2#020" => "supplemental_category", 
+      "2#020" => "supplemental_category",
       "2#015" => "category",
-      "2#010" => "subject_reference", 
+      "2#010" => "subject_reference",
       "2#010" => "urgency",
       "2#008" => "editorial_update",
       "2#007" => "edit_status",
@@ -853,7 +859,7 @@ Class Exif {
       "2#004" => "object_attribute_reference",
       "2#003" => "object_type_reference",
       "2#000" => "record_version",
-      "1#090" => "envelope_character_set"    
+      "1#090" => "envelope_character_set"
       );
   }
 
