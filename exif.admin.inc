@@ -124,10 +124,18 @@ function exif_admin_settings_form() {
   if (module_exists("media")) {
     $all_mt = array();
     // Setup media types
-    $types = media_type_get_types();
-    foreach ($types as $key) {
-      $all_mt[$key->name] = $key->name;
-    }
+    if (function_exists('file_type_get_enabled_types')) {
+      $types = file_type_get_enabled_types();
+      foreach ($types as $key) {
+        $all_mt[$key->type] = $key->label;
+      }
+    } else if (function_exists('media_type_get_types')) {
+      $types = media_type_get_types();
+      foreach ($types as $key) {
+        $all_mt[$key->name] = $key->name;
+      }
+    } 
+    
     $forms['exif_mediatypes'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Mediatypes'),
