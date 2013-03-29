@@ -498,8 +498,8 @@ function exif_field_widget_info() {
  * Implements hook_field_widget_info_alter().
  */
 function exif_field_widget_info_alter(&$info) {
-  $info['options_select']['field types'] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
-  $info['options_buttons']['field types'] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
+  $info['options_select']['field types'][] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
+  $info['options_buttons']['field types'][] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
 }
 
 
