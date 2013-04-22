@@ -498,10 +498,11 @@ function exif_field_widget_info() {
  * Implements hook_field_widget_info_alter().
  */
 function exif_field_widget_info_alter(&$info) {
-  $info['options_select']['field types'][] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
-  $info['options_buttons']['field types'][] = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
+  // By default the field types is an empty array.
+  $field_types = array('text', 'text_long', 'taxonomy_term_reference','date', 'datetime', 'datestamp');
+  $info['options_select']['field types'] = array_unique(array_merge($info['options_select']['field types'], $field_types));
+  $info['options_buttons']['field types'] = array_unique(array_merge($info['options_buttons']['field types'], $field_types));
 }
-
 
 /**
  * Implementation of hook_widget_settings().
