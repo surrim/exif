@@ -1,0 +1,7 @@
+date_format_exif: "Y-m-d\\TH:i:s"
+granularity: 0
+mediatypes: []
+nodetypes: []
+update_metadata: false
+vocabulary: []
+write_empty_values: false

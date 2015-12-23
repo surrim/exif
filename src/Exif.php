@@ -1,13 +1,11 @@
 <?php
-//$Id:
-
 /**
- *
- * @author Jean-Philippe Hautin
- * @author Raphael Schär
- * This is a helper class to handle the whole data processing of exif
- *
+ * @file
+ * Contains \Drupal\exif\Exif
  */
+
+namespace Drupal\exif;
+
 Class Exif {
   static private $instance = NULL;
 
@@ -29,10 +27,10 @@ Class Exif {
     return $sections;
   }
 
-  /**
+  /**                                                                                                             Exif
    * Going through all the fields that have been created for a given node type
    * and try to figure out which match the naming convention -> so that we know
-   * which exif information we have to read
+   * which exif information we have to read                                                                       Exif
    *
    * Naming convention are: field_exif_xxx (xxx would be the name of the exif
    * tag to read
@@ -73,7 +71,7 @@ Class Exif {
           case 'gps_longitude':
           case 'gpslatitude':
           case 'gpslongitude':
-            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
+             $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
             break;
         }
       } else {
@@ -98,9 +96,12 @@ Class Exif {
             // which will look something like 2004-02-12T15:19:21
             $date_time = explode(" ", $value);
             $date_time[0] = str_replace(":", "-", $date_time[0]);
+            //TODO
+            /*
             if (variable_get('exif_granularity', 0) == 1) {
               $date_time[1] = "00:00:00";
             }
+            */
             $value = implode("T", $date_time);
             break;
           // GPS values.

@@ -1,10 +1,11 @@
-// $Id: 
+Exif
+====
 
 README file for the Exif Drupal module.
 
 
 Description
-***********
+------------
 
 The Exif module allows to display Exif metadata on image nodes. Exif is a
 specification for the image file format used by digital cameras.
@@ -29,7 +30,7 @@ At this time, this module supports Exif information only with JPEG files.
 
 
 Requirements and Constraints
-****************************
+----------------------------
 
 CCK with at least textfields enabled.
 If you use a module like imagefield. It's only possible to have one image per node!! 
@@ -37,7 +38,7 @@ If there are more than one images per node, only the exif data of one image is r
 
 
 Usage
-************
+-----
 
 After installing it you can go to your CCK nodetype. It supports both the image module 
 aswell as the imagefield module. Let's say you have an content type "photo". Go to your
