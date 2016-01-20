@@ -18,7 +18,7 @@ class ExifHelp
      * Just some help page. Gives you an overview over the available tags
      * @return string html
      */
-    function content()
+    static function content()
     {
         $filepath = drupal_get_path('module', 'exif') . '/sample.jpg';
         //$url = \Drupal::url($filepath);

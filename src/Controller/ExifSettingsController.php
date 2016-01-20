@@ -6,11 +6,17 @@
 
 namespace Drupal\exif\Controller;
 
+use Drupal;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
+use Drupal\node\NodeTypeInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ExifSettingsController extends ControllerBase
@@ -36,6 +42,12 @@ class ExifSettingsController extends ControllerBase
      */
     public function createPhotographyVocabulary()
     {
+      $values = array(
+        "name" => "photographs metadata",
+        "vid" => "photographs_metadata",
+        "description" => "information related to photographs"
+      );
+      Vocabulary::create($values)->save();
       //TODO
       return [
         '#message' => $this->t('The new vocabulary photography has been fully created'),
@@ -63,51 +75,70 @@ class ExifSettingsController extends ControllerBase
       ->save();
   }
 
-  protected function addExistingFieldToContentType(NodeInterface $contentType,$fieldLabel,$fieldName,$fieldWidget,$fieldSettings = array()) {
-    $field = $this->entityTypeManager()->getStorage('field_config')->create(array(
-      'field_name' => $fieldName,
-      'entity_type' => 'node',
-      'bundle' => $contentType->bundle(),
-      'label' => $fieldLabel,
-    ));
-    $field->save();
-
-    $this->configureEntityFormDisplay($fieldName);
-    $this->configureEntityViewDisplay($fieldName);
+  protected function addFieldToContentType(NodeTypeInterface $type,$fieldLabel,$fieldName,$fieldType,$fieldWidget,$widgetSettings = array(),$settings = array()) {
+    $realFieldName =  'field_'.$fieldName;
+    $field_storage = FieldStorageConfig::loadByName('node', $realFieldName);
+    if (empty($field_storage))  {
+      $field_storage_values = [
+        'field_name' => $realFieldName,
+        'field_label' => $fieldLabel,
+        'entity_type' => 'node',
+        'bundle' => $type->id(),
+        'type' => $fieldType,
+        'translatable' => FALSE,
+      ];
+      $this->entityTypeManager()->getStorage('field_storage_config')->create($field_storage_values)->save();
+    }
+    $this->node_add_extra_field($type,$realFieldName,$fieldLabel,$fieldWidget,$widgetSettings);
   }
 
-  protected function addNewFieldToContentType(NodeInterface $contenttype,$fieldLabel,$fieldName,$fieldType,$fieldWidget,$fieldSettings = array(),$settings = array()) {
-    /*
-    $edit = array();
-    $edit["fields[_add_new_field][label]"]=$fieldLabel;
-    $edit["fields[_add_new_field][field_name]"]=$fieldName;
-    $edit["fields[_add_new_field][type]"]=$fieldType;
 
-    $edit["fields[_add_new_field][widget_type]"]=$fieldWidget;
-    $this->drupalPost("admin/structure/types/manage/{$contenttype->type}/fields",$edit,t("Save"));
-    $this->drupalPost(NULL,$fieldSettings,"Save field settings");
-    $this->drupalPost(NULL,$settings,"Save settings");
-    */
+  protected function node_add_extra_field(NodeTypeInterface $type, $name , $fieldLabel, $fieldWidget, $widgetSettings) {
+    $machinename = strtolower($name);
+    // Add or remove the body field, as needed.
+    $field_storage = FieldStorageConfig::loadByName('node', $machinename);
+    $field = FieldConfig::loadByName('node', $type->id(), $machinename);
+    if (empty($field)) {
+      $field = entity_create('field_config', array(
+        'field_storage' => $field_storage,
+        'bundle' => $type->id(),
+        'label' => $fieldLabel,
+        'settings' => array('display_summary' => TRUE),
+      ));
+      $field->save();
+    }
 
-    $field_storage_values = [
-      'field_name' => $fieldName,
-      'entity_type' => $contenttype->getType(),
-      'type' => $fieldType,
-      'translatable' => FALSE,
-    ];
-    $field_values = [
-      'field_name' => $fieldName,
-      'entity_type' => $contenttype->getType(),
-      'bundle' => $contenttype->bundle(),
-      'label' => $fieldLabel,
-      // Field translatability should be explicitly enabled by the users.
-      'translatable' => FALSE,
-    ];
+    // Assign widget settings for the 'default' form mode.
+    $entityFormDisplay = Drupal::entityManager()->getStorage('entity_form_display')->load('node.' . $type->id() . '.' . 'default');
+    $entityFormDisplay
+      ->setComponent($machinename, array(
+        'type' => $fieldWidget,
+        'settings' => $widgetSettings
+      ))
+      ->save();
 
-    $this->entityTypeManager()->getStorage('field_storage_config')->create($field_storage_values)->save();
-    $field = $this->entityTypeManager()->getStorage('field_config')->create($field_values)->save();
+    // Assign display settings for the 'default' and 'teaser' view modes.
+    entity_get_display('node', $type->id(), 'default')
+      ->setComponent($machinename, array(
+        'label' => 'hidden',
+        'type' => 'text_default',
+      ))
+      ->save();
+
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = Drupal::entityManager()->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      entity_get_display('node', $type->id(), 'teaser')
+        ->setComponent($machinename, array(
+          'label' => 'hidden',
+          'type' => 'text_summary_or_trimmed',
+        ))
+        ->save();
+    }
 
 
+    return $field;
   }
 
     /**
@@ -116,25 +147,23 @@ class ExifSettingsController extends ControllerBase
      */
     public function createPhotographyNodeType() {
       $nodeTypeName='Photography';
-      $entity_type='node';
-      //first create photography node type
-      /*
-      $node = Node::create(array(
-        'type' => $entity_type,
-        'bundle' => $nodeTypeName,
-        'title' => 'photography',
-        'langcode' => 'en',
-        'status' => 1,
-        'field_fields' => array(),
-      ));
-      $node->save();
-      */
-      node_type_save()
+      $machinename = strtolower($nodeTypeName);
+
+      $node_type = NodeType::load($machinename);
+      if (!$node_type) {
+        $node_type = NodeType::create(
+          [ 'name' => $nodeTypeName,
+            'type' => $machinename,
+            'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
+          ]);
+        $node_type->save();
+        node_add_body_field($node_type);
+      }
 
       //add default display
       $values = array(
-        'targetEntityType' => $entity_type,
-        'bundle' => $nodeTypeName,
+        'targetEntityType' => 'node',
+        'bundle' => $machinename,
         'mode' => 'default',
         'status' => TRUE
       );
@@ -142,8 +171,8 @@ class ExifSettingsController extends ControllerBase
 
       //add default form display
       $values = array(
-        'targetEntityType' => $entity_type,
-        'bundle' => $nodeTypeName,
+        'targetEntityType' => 'node',
+        'bundle' => $machinename,
         'mode' => 'default',
         'status' => TRUE,
       );
@@ -154,13 +183,16 @@ class ExifSettingsController extends ControllerBase
 
       //then add fields
       //add photo field of type image_field
-      //$this->addNewFieldToContentType($node,'photo','image','image','exif_readonly');
-      //$this->addNewFieldToContentType($node,'model','exif_model','taxonomy_term_reference','exif_readonly');
+      $this->addFieldToContentType($node_type,'Photo','image','image','exif_readonly');
+      $this->addFieldToContentType($node_type,'Model','exif_model','text','exif_readonly');
+      $widget_settings = [
+        'image_field' => 'field_image',
+        'exif_field' => 'naming_convention'
+      ];
+      $this->addFieldToContentType($node_type,'Creation date','exif_filedatetime','datetime','exif_readonly',$widget_settings);
+      $this->addFieldToContentType($node_type,'Photographer','exif_author','taxonomy_term','exif_readonly',$widget_settings);
 
-      //$this->createTypeField($node,'keywords');
-      //$this->createTypeField($node,'model');
-      //$this->createField('Photography','keywords','text');
-      //TODO
+
       return [
         '#message' => $this->t('The node type photography has been fully created'),
         '#theme' => 'exif_helper_page'

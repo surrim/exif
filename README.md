@@ -32,20 +32,23 @@ At this time, this module supports Exif information only with JPEG files.
 Requirements and Constraints
 ----------------------------
 
-CCK with at least textfields enabled.
-If you use a module like imagefield. It's only possible to have one image per node!! 
-If there are more than one images per node, only the exif data of one image is read!
+Drupal 8 with at least node enabled.
+You can have several image per node. each exif field must be linked to the chosen image
+of the node.
 
+If taxonomy module is enabled, you can save the information as a vocabulary.
+A specific vocabulary must be set in the exif plugin configuration page.
 
 Usage
 -----
 
-After installing it you can go to your CCK nodetype. It supports both the image module 
-aswell as the imagefield module. Let's say you have an content type "photo". Go to your
-cck settings and add a new field. For the name of the field you need to follow the following
+After installing it you can go to your structure administration page.
+Let's say you have an content type "photography". Go to your
+content settings and add a new type of content 'photography' with default fields.
+Then, add exif fields. For the name of the field you need to follow the following
 naming conventions:
 
-Example: 
+Example:
 #1 field_exif_exposuretime -> this would read the ExposureTime of the image and save it
 in this field.
 
@@ -53,8 +56,9 @@ in this field.
 as a field_type you can take for example a normal textfield, but also a date field would be
 possible.
 
-General rule is: [field]_[section]_[name] 
+General rule is: [field]_[section]_[name]
 
-Under admin/settings/exif you can see a list of all possible information. These informations
-are taken from the image "sample.jpg". I may not contain all tags available. If you are looking
-for some specific tags you can just replace this image with your own image.
+Under the exif quickstart (admin/config/media/exif/helper), you can see a list of all
+possible information. These informations are taken from the image "sample.jpg".
+I may not contain all tags available. If you are looking for some specific tags you
+can just replace this image with your own image.
