@@ -22,7 +22,7 @@ The metadata tags defined in the Exif standard cover a broad spectrum including 
    camera.
  * Descriptions and copyright information.
 
-Administrators can choose via CCK fields which Exif information are read.
+Administrators can choose via fields GUI which Exif information are read.
 
 At this time, this module supports Exif information only with JPEG files.
 

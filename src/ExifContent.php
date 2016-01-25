@@ -37,7 +37,7 @@ class ExifContent {
   function node_insert_update(NodeInterface $entity) {
     $bundles_to_check = $this->get_bundle_for_exif_data();
     if(in_array($entity->getType(), $bundles_to_check)){
-      $exif = Exif::getInstance();
+      $exif = ExifFactory::getExifInterface();
       $ar_exif_fields = $this->filter_fields_on_settings($entity);
       $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
       $image_fields = $this->get_image_fields($entity);
@@ -158,7 +158,7 @@ class ExifContent {
     if (empty($image_fields)) {
       return FALSE;                                                                             //then check it is an array
     }
-    $exif = Exif::getInstance();
+
     foreach ($ar_exif_fields as $drupal_field => $metadata_settings) {
       $field_image_name = $metadata_settings['image_field'];
       if (empty($image_fields[$field_image_name])) {
@@ -168,7 +168,7 @@ class ExifContent {
         if ($image_descriptor == FALSE) {
           $fullmetadata=array();
         } else {
-          $fullmetadata = $this->get_data_from_file_uri($exif,$image_descriptor['uri']);
+          $fullmetadata = $this->get_data_from_file_uri($image_descriptor['uri']);
         }
         $result[$field_image_name]=$fullmetadata;
         $ar_exif_fields[$drupal_field]['language']=$image_descriptor['language'];
@@ -211,6 +211,7 @@ class ExifContent {
     //common to media
     $uri = $file_uri->getValue()['value'];
     $absoluteFilePath = Drupal::getContainer()->get('file_system')->realpath($uri);
+    $exif = $this->getExifInterface();
     $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
     return $fullmetadata;
   }

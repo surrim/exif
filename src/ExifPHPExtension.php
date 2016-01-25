@@ -1,12 +1,13 @@
 <?php
 /**
  * @file
- * Contains \Drupal\exif\Exif
+ * Contains \Drupal\exif\ExifPHPExtension
  */
 
 namespace Drupal\exif;
 
-Class Exif {
+Class ExifPHPExtension implements ExifInterface
+{
   static private $instance = NULL;
 
   /**
@@ -27,10 +28,10 @@ Class Exif {
     return $sections;
   }
 
-  /**                                                                                                             Exif
+  /**
    * Going through all the fields that have been created for a given node type
    * and try to figure out which match the naming convention -> so that we know
-   * which exif information we have to read                                                                       Exif
+   * which exif information we have to read
    *
    * Naming convention are: field_exif_xxx (xxx would be the name of the exif
    * tag to read

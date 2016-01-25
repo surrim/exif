@@ -57,7 +57,8 @@
         </ul>
       </ul>
     </ul>
-    <a class="button form-submit" href="helper/vocabulary">create a vocabulary for my photos !</a>
+    <a class="button form-submit" href="helper/vocabulary">{% trans %}create a vocabulary for my
+      photos.{% endtrans %}</a>
   </dd>
   <dt>{% trans %}Creating node type for Photos{% endtrans %}</dt>
   <dd>{% trans %}To get metadata information of an image, you have to choose on which node type the extraction should be made.{% endtrans %}
@@ -74,12 +75,9 @@
     </ul>
     {% trans %}TIPS : Note for iptc and exif fields that have several values (like field iptc "keywords" as an example), {% endtrans %}
     {% trans %}if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).{% endtrans %}
-    if you want, the exif module can create a node type 'Photography' with a image field and some basic metadata fields (keywords, model and title).
-    <a class="button form-submit" href="helper/nodetype"> create a nodetype for my photos !</a>
+    {% trans %}if you want, the exif module can create a node type 'Photography' with a image field and some basic
+    metadata fields (keywords, model and title).{% endtrans %}<br>
+    <a class="button form-submit" href="helper/nodetype">{% trans %}create a node content type for my
+      photos.{% endtrans %}</a>
   </dd>
-
 </dl>
-<div class="sample-image">
-  <h3 class="sample-image">{% trans %}Example of field name and the metadata extracted{% endtrans %}</h3>
-  <img class="sample-image" src="{{  imagePath }}"/>
-</div>

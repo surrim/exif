@@ -1,20 +1,20 @@
 <?php
 /**
- * @file
-plain
- * kk * Contains \Drupal\exif\ExifHelp
+ * @file ExifHelp.php
+ * @Contains \Drupal\exif\ExifHelp
  */
 
 namespace Drupal\exif;
 
-use Drupal\exif\Exif;
+use Drupal\exif\ExifInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Utility\SafeMarkup;
 
 class ExifHelp
 {
 
-    /**
+
+  /**
      * Just some help page. Gives you an overview over the available tags
      * @return string html
      */
@@ -74,7 +74,7 @@ class ExifHelp
         $rows = array();
         $help = '';
         //TODO drupal_add_css(drupal_get_path('module', 'exif') . '/exif.admin.css');
-        $exif = Exif::getInstance();
+      $exif = ExifFactory::getExifInterface();
         $fullmetadata = $exif->readMetadataTags($filepath);
         if (is_array($fullmetadata)) {
             foreach ($fullmetadata as $section => $section_data) {
@@ -105,39 +105,4 @@ class ExifHelp
         $output .= '</p>';
         return $output;
     }
-
-
-    /*
-     *     $content = array();
-
-    $content['message'] = array(
-      '#markup' => $this->t('A more complex list of entries in the database.') . ' ' .
-      $this->t('Only the entries with name = "John" and age older than 18 years are shown, the username of the person who created the entry is also shown.'),
-    );
-
-    $headers = array(
-      t('Id'),
-      t('Created by'),
-      t('Name'),
-      t('Surname'),
-      t('Age'),
-    );
-
-    $rows = array();
-    foreach ($entries = DBTNGExampleStorage::advancedLoad() as $entry) {
-      // Sanitize each entry.
-      $rows[] = array_map('Drupal\Component\Utility\SafeMarkup::checkPlain', $entry);
-    }
-    $content['table'] = array(
-      '#type' => 'table',
-      '#header' => $headers,
-      '#rows' => $rows,
-      '#attributes' => array('id' => 'dbtng-example-advanced-list'),
-      '#empty' => t('No entries available.'),
-    );
-    // Don't cache this page.
-    $content['#cache']['max-age'] = 0;
-    return $content;
-  }
-     */
 }
