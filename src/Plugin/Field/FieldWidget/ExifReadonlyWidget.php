@@ -6,6 +6,7 @@
 
 namespace Drupal\exif\Plugin\Field\FieldWidget;
 
+use Drupal;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
@@ -68,6 +69,13 @@ class ExifReadonlyWidget extends WidgetBase {
       '#default_value' => $default_exif_value,
       '#element_validate' => array(array(get_class($this), 'validateExifField'))
     );
+    $form['exif_field_separator'] = array(
+      '#type' => 'textfield',
+      '#title' => t('exif field separator'),
+      '#description' => t('separator used to split values (if field definition support several values). let it empty if you do not want to split values.'),
+      '#default_value' => '',
+      '#element_validate' => array(array(get_class($this), 'validateExifFieldSeparator'))
+    );
     return $element;
   }
 
@@ -76,6 +84,14 @@ class ExifReadonlyWidget extends WidgetBase {
    */
   public function settingsSummary() {
     $summary = parent::settingsSummary();
+
+    $exif_field_separator = $this->getSetting('exif_field_separator');
+    if (isset($exif_field_separator) && strlen($exif_field_separator) < 2) {
+      $exif_field_msg = t('exif value will be split using character separator @metadata', array('@metadata' => $exif_field_separator));
+    } else {
+      $exif_field_msg = t('exif value will be extracted as one value');
+    }
+    array_unshift($summary, $exif_field_msg);
 
     $exif_field = $this->getSetting('exif_field');
     if (isset($exif_field) && $exif_field!='naming_convention') {
@@ -118,6 +134,7 @@ class ExifReadonlyWidget extends WidgetBase {
    */
   public static function defaultSettings() {
     return array(
+      'exif_field_separator' => '',
       'exif_field' => 'naming_convention',
       'exif_update' => TRUE,
       'image_field' => NULL
@@ -156,7 +173,7 @@ class ExifReadonlyWidget extends WidgetBase {
     $elementSettings = $form_state->getValue($element['#parents']);
     if ( !$elementSettings ) {
       //$form_state->setErrorByName('image_field', t('you must choose at least one image field to retreive metadata.'));
-      $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($form['#entity_type']);
+      $field_storage_definitions = Drupal::entityManager()->getFieldStorageDefinitions($form['#entity_type']);
       $field_storage = $field_storage_definitions[$element['#field_name']];
       $args = array('%field' => $field_storage->getName());
       $message = t('Field %field must be link to an image field.', $args);
@@ -169,6 +186,15 @@ class ExifReadonlyWidget extends WidgetBase {
     if ( !$elementSettings ) {
       $message = t('you must choose at least one method to retreive image metadata.');
       $form_state->setErrorByName('exif_field',$message);
+    }
+  }
+
+  function validateExifFieldSeparator($element, &$form_state)
+  {
+    $elementSettings = $form_state->getValue($element['#parents']);
+    if (!empty($elementSettings) && strlen($elementSettings) > 1) {
+      $message = t('the separator is only one character long.');
+      $form_state->setErrorByName('exif_field_separator', $message);
     }
   }
 

@@ -52,6 +52,9 @@ class ExifContent {
           && array_key_exists($key,$metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
         ) {
           $value=$metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
+          if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
+            $value = explode($metadata_field_descriptor['metadata_field_separator'], $value);
+          }
         } else {
           $value=NULL;
         }
@@ -107,6 +110,7 @@ class ExifContent {
           ->load('node.' . $entity->bundle() . '.default')
           ->getComponent($fieldName)['settings'];
         $exifField = $settings['exif_field'];
+        $exifFieldSeparator = $settings['exif_field_separator'];
         $imageField = $settings['image_field'];
         $mediaField = $settings['media_generic'];
         if (isset($exifField) && ((isset($imageField)) || (isset($mediaField))) ) {
@@ -117,6 +121,9 @@ class ExifContent {
             $name=$exifField;
           }
           $element['metadata_field']=$name;
+          if (isset($exifFieldSeparator) && strlen($exifFieldSeparator) > 0) {
+            $element['metadata_field_separator'] = $exifFieldSeparator;
+          }
           if ( !isset($imageField) && isset($mediaField) ) {
             $element['image_field']=$mediaField;
           } else {
@@ -203,15 +210,15 @@ class ExifContent {
   /**
    * retrieve all metadata values from an image.
    *
-   * @param Exif $exif the Exif provider to use
    * @param UriItem $file_uri the File URI to look at.
    * @return mixed
    */
-  function get_data_from_file_uri(Exif $exif,UriItem $file_uri) {
+  function get_data_from_file_uri(UriItem $file_uri)
+  {
     //common to media
     $uri = $file_uri->getValue()['value'];
     $absoluteFilePath = Drupal::getContainer()->get('file_system')->realpath($uri);
-    $exif = $this->getExifInterface();
+    $exif = ExifFactory::getExifInterface();
     $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
     return $fullmetadata;
   }

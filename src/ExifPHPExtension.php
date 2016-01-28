@@ -6,6 +6,8 @@
 
 namespace Drupal\exif;
 
+use Drupal;
+
 Class ExifPHPExtension implements ExifInterface
 {
   static private $instance = NULL;
@@ -255,7 +257,13 @@ Class ExifPHPExtension implements ExifInterface
     if (!in_array(strtolower($this->getFileType($file)), $ar_supported_types)) {
       return array();
     }
-    $exif = exif_read_data($file, 0,$enable_sections);
+    $exif = array();
+    try {
+      $exif = exif_read_data($file, 0, $enable_sections);
+    } catch (Exception $e) {
+      // Logs a notice
+      Drupal::logger('exif')->warning(t("Error while reading EXIF tags from image."), $e);
+    }
     $arSmallExif = array();
     foreach ((array)$exif as $key1 => $value1) {
 
@@ -288,7 +296,7 @@ Class ExifPHPExtension implements ExifInterface
    */
   public function readIPTCTags($file, $enable_sections) {
     $humanReadableKey = $this->getHumanReadableIPTCkey();
-    $size = GetImageSize ($file, $infoImage);
+    $size = GetImageSize($file);
     $iptc = empty($infoImage["APP13"]) ? array() : iptcparse($infoImage["APP13"]);
     $arSmallIPTC = array();
     if (is_array($iptc)) {
@@ -449,6 +457,7 @@ Class ExifPHPExtension implements ExifInterface
 "computed_height",
 "computed_width",
 "computed_iscolor",
+      "computed_copyright",
 "computed_byteordermotorola",
 "computed_ccdwidth",
 "computed_aperturefnumber",
@@ -547,6 +556,8 @@ Class ExifPHPExtension implements ExifInterface
 "exif_imagedescription",
 "exif_make",
 "exif_model",
+      "exif_lens",
+      "exif_lensid",
 "exif_orientation",
 "exif_xresolution",
 "exif_yresolution",
@@ -993,6 +1004,7 @@ Class ExifPHPExtension implements ExifInterface
       $xmp_keys[$current_value] = $current_value;
     }
     $fields = array_merge($exif_keys,$iptc_keys,$xmp_keys);
+    ksort($fields);
     return $fields;
   }
 
