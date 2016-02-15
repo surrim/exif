@@ -7,8 +7,7 @@
 namespace Drupal\exif;
 
 
-interface ExifInterface
-{
+interface ExifInterface {
   function getMetadataFields($arCckFields = array());
 
   function readMetadataTags($file, $enable_sections = TRUE);

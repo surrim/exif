@@ -50,8 +50,10 @@ function exif_menu() {
  */
 function exif_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
-    case 'help.page.exif':	return ExifHelp::content();
-    default : return null;
+    case 'help.page.exif':
+      return ExifHelp::content();
+    default :
+      return NULL;
   }
 }
 
@@ -84,7 +86,7 @@ function exif_entity_presave(EntityInterface $entity) {
     $config = Drupal::configFactory()->get('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
-      $shouldUpdateMetadata=TRUE;
+      $shouldUpdateMetadata = TRUE;
     }
     if ($shouldUpdateMetadata) {
       $exifContentHandler = new ExifContent();

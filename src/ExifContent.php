@@ -36,37 +36,39 @@ class ExifContent {
    */
   function node_insert_update(NodeInterface $entity) {
     $bundles_to_check = $this->get_bundle_for_exif_data();
-    if(in_array($entity->getType(), $bundles_to_check)){
+    if (in_array($entity->getType(), $bundles_to_check)) {
       $exif = ExifFactory::getExifInterface();
       $ar_exif_fields = $this->filter_fields_on_settings($entity);
       $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
       $image_fields = $this->get_image_fields($entity);
-      $metadata_image_fields = $this->get_image_fields_metadata($entity,$ar_exif_fields,$image_fields);
+      $metadata_image_fields = $this->get_image_fields_metadata($entity, $ar_exif_fields, $image_fields);
       foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
-        $field_name=$drupal_field;
+        $field_name = $drupal_field;
         $tmp = $entity->get($field_name);
-        $key=$metadata_field_descriptor['metadata_field']['tag'];
-        $section=$metadata_field_descriptor['metadata_field']['section'];
+        $key = $metadata_field_descriptor['metadata_field']['tag'];
+        $section = $metadata_field_descriptor['metadata_field']['section'];
         if (
-          array_key_exists($section,$metadata_image_fields[$metadata_field_descriptor['image_field']])
-          && array_key_exists($key,$metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
+          array_key_exists($section, $metadata_image_fields[$metadata_field_descriptor['image_field']])
+          && array_key_exists($key, $metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
         ) {
-          $value=$metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
+          $value = $metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
           if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
             $value = explode($metadata_field_descriptor['metadata_field_separator'], $value);
           }
-        } else {
-          $value=NULL;
+        }
+        else {
+          $value = NULL;
         }
         if ($value != NULL) {
           if (is_array($value)) {
-            $j = 0 ;
-            foreach($value as $innerkey => $innervalue) {
-              $this->handle_field($j,$tmp,$section,$key,$innervalue);
+            $j = 0;
+            foreach ($value as $innerkey => $innervalue) {
+              $this->handle_field($j, $tmp, $section, $key, $innervalue);
               $j++;
             }
-          } else {
-            $this->handle_field(0,$tmp,$section,$key,$value);
+          }
+          else {
+            $this->handle_field(0, $tmp, $section, $key, $value);
           }
         }
       }
@@ -83,12 +85,12 @@ class ExifContent {
     $new_types = array();
     //fill up array with checked nodetypes
     foreach ($config->get('nodetypes', array()) as $type) {
-      if ($type != "0" ) {
+      if ($type != "0") {
         $new_types[] = $type;
       }
     }
     foreach ($config->get('mediatypes', array()) as $type) {
-      if ($type != "0" ) {
+      if ($type != "0") {
         $new_types[] = $type;
       }
     }
@@ -102,7 +104,7 @@ class ExifContent {
    * @return array the list of metadata fields found in the entity
    */
   function filter_fields_on_settings(NodeInterface $entity) {
-    $result=array();
+    $result = array();
     foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
       if ($fieldDefinition instanceof FieldConfigInterface) {
         $settings = \Drupal::entityTypeManager()
@@ -113,23 +115,25 @@ class ExifContent {
         $exifFieldSeparator = $settings['exif_field_separator'];
         $imageField = $settings['image_field'];
         $mediaField = $settings['media_generic'];
-        if (isset($exifField) && ((isset($imageField)) || (isset($mediaField))) ) {
+        if (isset($exifField) && ((isset($imageField)) || (isset($mediaField)))) {
           $element = array();
           if ($exifField == 'naming_convention') {
-            $name=substr($fieldName,6);
-          } else {
-            $name=$exifField;
+            $name = substr($fieldName, 6);
           }
-          $element['metadata_field']=$name;
+          else {
+            $name = $exifField;
+          }
+          $element['metadata_field'] = $name;
           if (isset($exifFieldSeparator) && strlen($exifFieldSeparator) > 0) {
             $element['metadata_field_separator'] = $exifFieldSeparator;
           }
-          if ( !isset($imageField) && isset($mediaField) ) {
-            $element['image_field']=$mediaField;
-          } else {
-            $element['image_field']=$imageField;
+          if (!isset($imageField) && isset($mediaField)) {
+            $element['image_field'] = $mediaField;
           }
-          $result[$fieldName]=$element;
+          else {
+            $element['image_field'] = $imageField;
+          }
+          $result[$fieldName] = $element;
         }
       }
     }
@@ -144,20 +148,20 @@ class ExifContent {
    */
   function get_image_fields(FieldableEntityInterface $entity) {
     $result = array();
-    if ($entity->getEntityTypeId()=='node') {
+    if ($entity->getEntityTypeId() == 'node') {
       foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
-        if ($fieldDefinition->getType()=='image') {
-          $result[$fieldName]=$fieldDefinition;
+        if ($fieldDefinition->getType() == 'image') {
+          $result[$fieldName] = $fieldDefinition;
         }
       }
     }
     if ($entity->getEntityTypeId() == 'file') {
-      $result['file']=$entity;
+      $result['file'] = $entity;
     }
     return $result;
   }
 
-  function get_image_fields_metadata(FieldableEntityInterface $entity,&$ar_exif_fields,$image_fields) {
+  function get_image_fields_metadata(FieldableEntityInterface $entity, &$ar_exif_fields, $image_fields) {
     $result = array();
     if (empty($ar_exif_fields)) {
       return TRUE;                                                                              //then check it is an array
@@ -170,15 +174,17 @@ class ExifContent {
       $field_image_name = $metadata_settings['image_field'];
       if (empty($image_fields[$field_image_name])) {
         $result[$field_image_name] = array();
-      } else {
+      }
+      else {
         $image_descriptor = $this->get_file_uri_and_language($entity, $field_image_name);
         if ($image_descriptor == FALSE) {
-          $fullmetadata=array();
-        } else {
+          $fullmetadata = array();
+        }
+        else {
           $fullmetadata = $this->get_data_from_file_uri($image_descriptor['uri']);
         }
-        $result[$field_image_name]=$fullmetadata;
-        $ar_exif_fields[$drupal_field]['language']=$image_descriptor['language'];
+        $result[$field_image_name] = $fullmetadata;
+        $ar_exif_fields[$drupal_field]['language'] = $image_descriptor['language'];
       }
     }
     return $result;
@@ -197,12 +203,15 @@ class ExifContent {
       $image_field_instance = $entity->get($field_image_name);
       if ($image_field_instance instanceof FileFieldItemList) {
         $result = array();
-        $result['uri']=$image_field_instance->entity->uri[0];
-        $result['language']=$image_field_instance->entity->language();
+        $result['uri'] = $image_field_instance->entity->uri[0];
+        $result['language'] = $image_field_instance->entity->language();
       }
-    } else if ($entity->getEntityTypeId() == 'file') {
-      $result['uri']=$entity->uri;
-      $result['language']=$entity->language();
+    }
+    else {
+      if ($entity->getEntityTypeId() == 'file') {
+        $result['uri'] = $entity->uri;
+        $result['language'] = $entity->language();
+      }
     }
     return $result;
   }
@@ -213,11 +222,12 @@ class ExifContent {
    * @param UriItem $file_uri the File URI to look at.
    * @return mixed
    */
-  function get_data_from_file_uri(UriItem $file_uri)
-  {
+  function get_data_from_file_uri(UriItem $file_uri) {
     //common to media
     $uri = $file_uri->getValue()['value'];
-    $absoluteFilePath = Drupal::getContainer()->get('file_system')->realpath($uri);
+    $absoluteFilePath = Drupal::getContainer()
+      ->get('file_system')
+      ->realpath($uri);
     $exif = ExifFactory::getExifInterface();
     $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
     return $fullmetadata;
@@ -232,15 +242,24 @@ class ExifContent {
    * @param $exif_name  string the exif label where value has been retrieved
    * @param $exif_value string the exif value to update
    */
-  function handle_field($index,FieldItemListInterface &$field,$exif_section,$exif_name,$exif_value) {
-    $value=$this->sanitize_value($exif_value);
+  function handle_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_value) {
+    $value = $this->sanitize_value($exif_value);
     $field_typename = $field->getFieldDefinition()->getType();
-    if ($field_typename=='text') {
-      $this->handle_text_field($index,$field,$exif_section,$exif_name,$value);
-    } else if ($field_typename=='entity_reference' && $field->getFieldDefinition()->getFieldStorageDefinition()->getSetting('target_type') == 'taxonomy_term') {
-      $this->handle_taxonomy_field($index,$field,$exif_section,$exif_name,$value);
-    } else if ($field_typename=='datetime' || $field_typename=='date') {
-      $this->handle_date_field($index,$field,$exif_section,$exif_name,$value);
+    if ($field_typename == 'text') {
+      $this->handle_text_field($index, $field, $exif_section, $exif_name, $value);
+    }
+    else {
+      if ($field_typename == 'entity_reference' && $field->getFieldDefinition()
+          ->getFieldStorageDefinition()
+          ->getSetting('target_type') == 'taxonomy_term'
+      ) {
+        $this->handle_taxonomy_field($index, $field, $exif_section, $exif_name, $value);
+      }
+      else {
+        if ($field_typename == 'datetime' || $field_typename == 'date') {
+          $this->handle_date_field($index, $field, $exif_section, $exif_name, $value);
+        }
+      }
     }
   }
 
@@ -252,7 +271,7 @@ class ExifContent {
    */
   function sanitize_value($exif_value) {
     if (!Unicode::validateUtf8($exif_value)) {
-      $exif_value=Html::escape(utf8_encode($exif_value));
+      $exif_value = Html::escape(utf8_encode($exif_value));
     }
     return $exif_value;
   }
@@ -267,10 +286,9 @@ class ExifContent {
    * @param $exif_name  string the exif label where value has been retrieved
    * @param $exif_value string the exif value to update
    */
-  function handle_text_field($index,FieldItemListInterface &$field,$exif_section,$exif_name,$exif_sanitized_value) {
-    $field->offsetSet($index,$exif_sanitized_value);
+  function handle_text_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_sanitized_value) {
+    $field->offsetSet($index, $exif_sanitized_value);
   }
-
 
 
   /**
@@ -282,14 +300,17 @@ class ExifContent {
    * @param $exif_name  string the exif label where value has been retrieved
    * @param $exif_value string the exif value to update
    */
-  function handle_date_field($index, FieldItemListInterface &$field,$exif_section,$exif_name,$exif_sanitized_value) {
+  function handle_date_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_sanitized_value) {
 
-    if ($exif_name=='filedatetime') {
+    if ($exif_name == 'filedatetime') {
       $format = 'atom';
-    } else {
+    }
+    else {
       $format = 'exif';
     }
-    $dateFormatStorage = Drupal::getContainer()->get('entity.manager')->getStorage('date_format');
+    $dateFormatStorage = Drupal::getContainer()
+      ->get('entity.manager')
+      ->getStorage('date_format');
     if ($dateFormatStorage instanceof EntityStorageInterface) {
       //load format for parsing information from image
       $dateFormat = $dateFormatStorage->load($format);
@@ -298,13 +319,14 @@ class ExifContent {
         //Using website timezone instead or default storage if none is defined.
         //TODO : drupal_get_user_timezone();
         //parse string to date following chosen format
-        $date_datetime = DrupalDateTime::createFromFormat($dateFormat->getPattern(),$exif_sanitized_value);
+        $date_datetime = DrupalDateTime::createFromFormat($dateFormat->getPattern(), $exif_sanitized_value);
         //load storage format
-        $storage_format = $field->getFieldDefinition()->getSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE ? DATETIME_DATE_STORAGE_FORMAT: DATETIME_DATETIME_STORAGE_FORMAT;
+        $storage_format = $field->getFieldDefinition()
+          ->getSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE ? DATETIME_DATE_STORAGE_FORMAT : DATETIME_DATETIME_STORAGE_FORMAT;
         //format date to string for storage
         $value = $date_datetime->format($storage_format);
         //store value
-        $field->offsetSet($index,$value);
+        $field->offsetSet($index, $value);
       }
     }
   }
@@ -318,36 +340,39 @@ class ExifContent {
    * @param $exif_name  string the exif label where value has been retrieved
    * @param $exif_value string the exif value to update
    */
-  function handle_taxonomy_field($index, FieldItemListInterface &$field,$exif_section,$exif_name,$exif_value)  {
+  function handle_taxonomy_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_value) {
     //TODO : check if the vocabulary is the same as the field
     //look for the term
     if (!Unicode::validateUtf8($exif_value)) {
-      $exif_value=Html::escape(utf8_encode($exif_value));
+      $exif_value = Html::escape(utf8_encode($exif_value));
     }
     $config = Drupal::config('exif.settings');
     $chosen_vocabulary = $config->get('vocabulary');
     if (isset($chosen_vocabulary)) {
       //$vocabulary = Vocabulary::load($chosen_vocabulary);
-      $terms = taxonomy_term_load_multiple_by_name($exif_value,$chosen_vocabulary);
-      if (is_array($terms) && count($terms)>0) {
+      $terms = taxonomy_term_load_multiple_by_name($exif_value, $chosen_vocabulary);
+      if (is_array($terms) && count($terms) > 0) {
         $term = array_shift($terms);
-      } else {
-        // if not exist, create it and also parents if needed.
-        $terms = taxonomy_term_load_multiple_by_name($exif_name,$chosen_vocabulary);
-        if (is_array($terms) && count($terms)>0) {
-          $parent_term = array_shift($terms);
-        } else {
-          $terms = taxonomy_term_load_multiple_by_name($exif_section,$chosen_vocabulary);
-          if (is_array($terms) && count($terms)>0) {
-            $section_term = array_shift($terms);
-          } else {
-            $section_term = $this->create_term($chosen_vocabulary,$exif_section);
-          }
-          $parent_term = $this->create_term($chosen_vocabulary,$exif_name,$section_term->id());
-        }
-        $term = $this->create_term($chosen_vocabulary,$exif_value,$parent_term->id());
       }
-      $field->offsetSet($index,$term->id());
+      else {
+        // if not exist, create it and also parents if needed.
+        $terms = taxonomy_term_load_multiple_by_name($exif_name, $chosen_vocabulary);
+        if (is_array($terms) && count($terms) > 0) {
+          $parent_term = array_shift($terms);
+        }
+        else {
+          $terms = taxonomy_term_load_multiple_by_name($exif_section, $chosen_vocabulary);
+          if (is_array($terms) && count($terms) > 0) {
+            $section_term = array_shift($terms);
+          }
+          else {
+            $section_term = $this->create_term($chosen_vocabulary, $exif_section);
+          }
+          $parent_term = $this->create_term($chosen_vocabulary, $exif_name, $section_term->id());
+        }
+        $term = $this->create_term($chosen_vocabulary, $exif_value, $parent_term->id());
+      }
+      $field->offsetSet($index, $term->id());
     }
   }
 
@@ -358,11 +383,11 @@ class ExifContent {
    * @param $parent_term
    * @return unknown_type
    */
-  function create_term($vid,$name,$parent_term_id = 0) {
+  function create_term($vid, $name, $parent_term_id = 0) {
     $values = [
-     'vid' => $vid,
-     'name' => $name,
-     'parent' => $parent_term_id
+      'vid' => $vid,
+      'name' => $name,
+      'parent' => $parent_term_id
     ];
     $term = Term::create($values);
     $term->save();

@@ -43,15 +43,20 @@ class ExifReadonlyWidget extends WidgetBase {
     $exif_fields = $this->retrieveExifFields();
     $default_exif_value = $this->retrieveExifFieldDefaultValue();
     if ($form['#entity_type'] == "node") {
-      $image_fields = $this->retrieveImageFieldFromBundle($form['#entity_type'],$form['#bundle']);
-      $default_image_value = $this->retrieveImageFieldDefaultValue($element,$image_fields);
+      $image_fields = $this->retrieveImageFieldFromBundle($form['#entity_type'], $form['#bundle']);
+      $default_image_value = $this->retrieveImageFieldDefaultValue($element, $image_fields);
       $element['image_field'] = array(
         '#type' => 'radios',
         '#title' => t('image field to use to retreive data'),
         '#description' => t('determine the image used to look for exif and iptc metadata'),
         '#options' => $image_fields,
         '#default_value' => $default_image_value,
-        '#element_validate' => array(array(get_class($this),'validateImageField'))
+        '#element_validate' => array(
+          array(
+            get_class($this),
+            'validateImageField'
+          )
+        )
       );
     }
     if ($form['#entity_type'] == "file") {
@@ -65,7 +70,7 @@ class ExifReadonlyWidget extends WidgetBase {
       '#type' => 'select',
       '#title' => t('exif field data'),
       '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
-      '#options' => array_merge(array('naming_convention' => 'name of the field is used as the exif field name'),$exif_fields),
+      '#options' => array_merge(array('naming_convention' => 'name of the field is used as the exif field name'), $exif_fields),
       '#default_value' => $default_exif_value,
       '#element_validate' => array(array(get_class($this), 'validateExifField'))
     );
@@ -74,7 +79,12 @@ class ExifReadonlyWidget extends WidgetBase {
       '#title' => t('exif field separator'),
       '#description' => t('separator used to split values (if field definition support several values). let it empty if you do not want to split values.'),
       '#default_value' => '',
-      '#element_validate' => array(array(get_class($this), 'validateExifFieldSeparator'))
+      '#element_validate' => array(
+        array(
+          get_class($this),
+          'validateExifFieldSeparator'
+        )
+      )
     );
     return $element;
   }
@@ -88,17 +98,19 @@ class ExifReadonlyWidget extends WidgetBase {
     $exif_field_separator = $this->getSetting('exif_field_separator');
     if (isset($exif_field_separator) && strlen($exif_field_separator) < 2) {
       $exif_field_msg = t('exif value will be split using character separator @metadata', array('@metadata' => $exif_field_separator));
-    } else {
+    }
+    else {
       $exif_field_msg = t('exif value will be extracted as one value');
     }
     array_unshift($summary, $exif_field_msg);
 
     $exif_field = $this->getSetting('exif_field');
-    if (isset($exif_field) && $exif_field!='naming_convention') {
+    if (isset($exif_field) && $exif_field != 'naming_convention') {
       $exif_field_msg = t('exif data will be extracted from image metadata field @metadata', array('@metadata' => $exif_field));
-    } else {
+    }
+    else {
       $fieldname = $this->fieldDefinition->getName();
-      $exif_field=$fieldname.substr_replace("field_","",0);
+      $exif_field = $fieldname . substr_replace("field_", "", 0);
       $exif_field_msg = t('Using naming convention. so the exif data will be extracted from image metadata field @metadata', array('@metadata' => $exif_field));
     }
     array_unshift($summary, $exif_field_msg);
@@ -106,7 +118,8 @@ class ExifReadonlyWidget extends WidgetBase {
     $image_field = $this->getSetting('image_field');
     if (isset($image_field)) {
       $image_field_msg = t('exif will be extracted from image @image', array('@image' => $image_field));
-    }else {
+    }
+    else {
       $image_field_msg = t('No image chosen. field will stay empty.');
     }
     array_unshift($summary, $image_field_msg);
@@ -118,8 +131,7 @@ class ExifReadonlyWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state)
-  {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     //$form['#attached']['css'][] = drupal_get_path('module', 'exif') . '/exif.css';
     $element += array(
       '#type' => '#hidden',
@@ -140,7 +152,6 @@ class ExifReadonlyWidget extends WidgetBase {
       'image_field' => NULL
     ) + parent::defaultSettings();
   }
-
 
 
   function process($element, FormStateInterface $form_state, $form) {
@@ -171,26 +182,26 @@ class ExifReadonlyWidget extends WidgetBase {
 
   function validateImageField($element, FormStateInterface $form_state, $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
-    if ( !$elementSettings ) {
+    if (!$elementSettings) {
       //$form_state->setErrorByName('image_field', t('you must choose at least one image field to retreive metadata.'));
-      $field_storage_definitions = Drupal::entityManager()->getFieldStorageDefinitions($form['#entity_type']);
+      $field_storage_definitions = Drupal::entityManager()
+        ->getFieldStorageDefinitions($form['#entity_type']);
       $field_storage = $field_storage_definitions[$element['#field_name']];
       $args = array('%field' => $field_storage->getName());
       $message = t('Field %field must be link to an image field.', $args);
-      $form_state->setErrorByName('image_field',$message);
+      $form_state->setErrorByName('image_field', $message);
     }
   }
 
   function validateExifField($element, FormStateInterface $form_state, $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
-    if ( !$elementSettings ) {
+    if (!$elementSettings) {
       $message = t('you must choose at least one method to retreive image metadata.');
-      $form_state->setErrorByName('exif_field',$message);
+      $form_state->setErrorByName('exif_field', $message);
     }
   }
 
-  function validateExifFieldSeparator($element, &$form_state)
-  {
+  function validateExifFieldSeparator($element, &$form_state) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!empty($elementSettings) && strlen($elementSettings) > 1) {
       $message = t('the separator is only one character long.');
@@ -208,11 +219,11 @@ class ExifReadonlyWidget extends WidgetBase {
 
 
   private function retrieveExifFieldDefaultValue() {
-      $result = $this->getSetting('exif_field');
-      if (empty($result) ) {
-        $result='naming_convention';
-      }
-      return $result;
+    $result = $this->getSetting('exif_field');
+    if (empty($result)) {
+      $result = 'naming_convention';
+    }
+    return $result;
   }
 
   /**
@@ -220,24 +231,25 @@ class ExifReadonlyWidget extends WidgetBase {
    * @param $widget
    * @param $image_fields
    */
-  function retrieveImageFieldDefaultValue($widget,$image_fields) {
+  function retrieveImageFieldDefaultValue($widget, $image_fields) {
     $result = $widget['settings']['image_field'];
-    if ( empty($result) ) {
+    if (empty($result)) {
       $temp = array_keys($image_fields);
       if (!empty($temp) && is_array($temp)) {
-        $result= $temp[0];
+        $result = $temp[0];
       }
     }
     return $result;
   }
 
   function retrieveImageFieldFromBundle($entity_type, $bundle_name) {
-    $fields_of_bundle = \Drupal::entityManager()->getFieldDefinitions($entity_type,$bundle_name);
+    $fields_of_bundle = \Drupal::entityManager()
+      ->getFieldDefinitions($entity_type, $bundle_name);
     $result = array();
     foreach ($fields_of_bundle as $key => $value) {
       if ($value instanceof FieldConfig) {
         if ($value->getType() == "image" || $value->getType() == "media") {
-          $result[$key] = $value->getLabel()." (".$key.")";
+          $result[$key] = $value->getLabel() . " (" . $key . ")";
         }
       }
     }
@@ -245,4 +257,5 @@ class ExifReadonlyWidget extends WidgetBase {
   }
 
 }
+
 ?>

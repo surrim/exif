@@ -7,20 +7,17 @@
 namespace Drupal\exif;
 
 
-class ExifFactory
-{
+class ExifFactory {
 
   static private $instance = NULL;
 
   /**
    * We are implementing a singleton pattern
    */
-  private function __construct()
-  {
+  private function __construct() {
   }
 
-  public static function getInstance()
-  {
+  public static function getInstance() {
     if (is_null(self::$instance)) {
       self::$instance = new self;
     }
@@ -31,13 +28,11 @@ class ExifFactory
    * For now, the Factory return the only implementation based on PHP Exif Extension
    * @return ExifInterface|null
    */
-  public static function getExifInterface()
-  {
+  public static function getExifInterface() {
     return ExifFactory::getInstance()->createNewImplementation();
   }
 
-  private function createNewImplementation()
-  {
+  private function createNewImplementation() {
     return ExifPHPExtension::getInstance();
   }
 
