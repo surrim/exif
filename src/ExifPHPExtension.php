@@ -10,6 +10,7 @@ use Drupal;
 use Drupal\Component\Utility\Unicode;
 
 Class ExifPHPExtension implements ExifInterface {
+
   static private $instance = NULL;
 
   /**
@@ -51,7 +52,7 @@ Class ExifPHPExtension implements ExifInterface {
    * @return array a list of exif tags to read for this image
    */
   public function getMetadataFields($arCckFields = array()) {
-    $arSections = ExifPHPExtension::getMetadataSections();
+    $arSections = self::getMetadataSections();
     foreach ($arCckFields as $drupal_field => $metadata_settings) {
       $metadata_field = $metadata_settings['metadata_field'];
       $ar = explode("_", $metadata_field);
@@ -65,6 +66,10 @@ Class ExifPHPExtension implements ExifInterface {
       }
     }
     return $arCckFields;
+  }
+
+  public static function checkConfiguration() {
+    return function_exists('exif_read_data') && function_exists('iptcparse');
   }
 
 
@@ -288,8 +293,7 @@ Class ExifPHPExtension implements ExifInterface {
       $exif = exif_read_data($file, 0, $enable_sections);
     } catch (\Exception $e) {
       // Logs a notice
-      Drupal::logger('exif')
-        ->warning(t("Error while reading EXIF tags from image."), $e);
+      Drupal::logger('exif')->warning(t("Error while reading EXIF tags from image."), $e);
     }
     $arSmallExif = array();
     foreach ((array) $exif as $key1 => $value1) {

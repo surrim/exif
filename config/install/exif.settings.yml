@@ -5,3 +5,5 @@ nodetypes: []
 update_metadata: false
 vocabulary: []
 write_empty_values: false
+extraction_solution: "php_extensions"
+exiftool_location: "exiftool"

@@ -8,6 +8,7 @@
 
 namespace Drupal\exif\Controller;
 
+use Drupal\exif\ExifFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use Drupal;
@@ -118,6 +119,21 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
     );
 
+    $form['extraction_solution'] = array(
+      '#type' => 'select',
+      '#title' => t('which extraction solution to use on node update'),
+      '#options' => ExifFactory::getExtractionSolutions(),
+      '#default_value' => $config->get('extraction_solution', "php_extensions"),
+      '#description' => t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
+    );
+
+    $form['exiftool_location'] = array(
+      '#type' => 'text',
+      '#title' => t('location of exiftool binary'),
+      '#default_value' => $config->get('exiftool_location', "exiftool"),
+      '#description' => t('where is the exiftool binaries (only needed if extraction solution chosen is exiftool)'),
+    );
+
     $form['write_empty_values'] = array(
       '#type' => 'checkbox',
       '#title' => t('Write empty image data?'),
@@ -139,8 +155,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#default_value' => $config->get('vocabulary', array()),
       '#description' => t('Select vocabulary which should be used for iptc & exif data.If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>'),
     );
-    //TODO: add a button to create a vocabulary "photographies'metadata" (exif,iptc and xmp data contains in jpeg file)
-    //TODO : add a button to create an Photography node type with default exif field (title,model,keywords) and default behavior but 'promoted to front'
     //TODO : Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
     return parent::buildForm($form, $form_state);
   }
@@ -150,10 +164,9 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    /*
-    if (strlen($form_state->getValue('phone_number')) < 3) {
-        $form_state->setErrorByName('phone_number', $this->t('The phone number is too short. Please enter a full phone number.'));
-    }*/
+    if ($form_state->getValue('extraction_solution') == 'simple_exiftool' && !is_executable($form_state->getValue('exiftool_location')) ) {
+      $form_state->setErrorByName('exiftool_location', $this->t('The location provided for exiftool is not correct. Please ensure the exiftool location exists and is executable.'));
+    }
     parent::validateForm($form, $form_state);
   }
 
@@ -170,6 +183,8 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ->set('vocabulary', $form_state->getValue('vocabulary'))
       ->set('granularity', $form_state->getValue('granularity'))
       ->set('date_format_exif', $form_state->getValue('date_format_exif'))
+      ->set('extraction_solution', $form_state->getValue('extraction_solution'))
+      ->set('exiftool_location', $form_state->getValue('exiftool_location'))
       ->save();
 
     parent::submitForm($form, $form_state);

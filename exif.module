@@ -86,9 +86,10 @@ function exif_entity_presave(EntityInterface $entity) {
     $config = Drupal::configFactory()->get('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
-      $shouldUpdateMetadata = TRUE;
+      $shouldUpdateMetadata = true;
     }
-    if ($shouldUpdateMetadata) {
+    $inserting = !isset($entity->original);
+    if ($inserting || $shouldUpdateMetadata) {
       $exifContentHandler = new ExifContent();
       $exifContentHandler->node_insert_update($entity);
     }
