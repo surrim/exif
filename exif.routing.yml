@@ -18,7 +18,7 @@ exif.config:
 exif.helper:
   path: '/admin/config/media/exif/helper'
   defaults:
-    _title: "quick start guide"
+    _title: "Exif module quick start guide"
     _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::showGuide"
   requirements:
     _permission: "access content"
