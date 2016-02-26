@@ -11,7 +11,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\exif\Exif;
+use Drupal\exif\ExifFactory;
 use Drupal\field\Entity\FieldConfig;
 
 
@@ -66,14 +66,35 @@ class ExifReadonlyWidget extends WidgetBase {
         '#value' => "file",
       );
     }
-    $element['exif_field'] = array(
-      '#type' => 'select',
-      '#title' => t('exif field data'),
-      '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
-      '#options' => array_merge(array('naming_convention' => 'name of the field is used as the exif field name'), $exif_fields),
-      '#default_value' => $default_exif_value,
-      '#element_validate' => array(array(get_class($this), 'validateExifField'))
-    );
+    if (sizeof($exif_fields) > 1) {
+      $element['exif_field'] = array(
+        '#type' => 'select',
+        '#title' => t('exif field data'),
+        '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
+        '#options' => array_merge(array('naming_convention' => 'name of the field is used as the exif field name'), $exif_fields),
+        '#default_value' => $default_exif_value,
+        '#element_validate' => array(
+          array(
+            get_class($this),
+            'validateExifField'
+          )
+        )
+      );
+    }
+    else {
+      $element['exif_field'] = array(
+        '#type' => 'text',
+        '#title' => t('exif field data'),
+        '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
+        '#default_value' => $default_exif_value,
+        '#element_validate' => array(
+          array(
+            get_class($this),
+            'validateExifField'
+          )
+        )
+      );
+    }
     $form['exif_field_separator'] = array(
       '#type' => 'textfield',
       '#title' => t('exif field separator'),
@@ -213,7 +234,7 @@ class ExifReadonlyWidget extends WidgetBase {
    * @return array of possible exif fields
    */
   private function retrieveExifFields() {
-    $exif = Exif::getInstance();
+    $exif = ExifFactory::getExifInterface();
     return $exif->getFieldKeys();
   }
 
