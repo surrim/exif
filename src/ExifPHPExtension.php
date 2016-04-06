@@ -63,6 +63,10 @@ Class ExifPHPExtension implements ExifInterface {
           'section' => $section,
           'tag' => implode("_", $ar)
         );
+      } else {
+        //remove from the list a non usable description.
+        unset($arCckFields[$drupal_field]);
+        Drupal::logger('exif')->warning(t("not able to understand exif field settings ") . $metadata_field);
       }
     }
     return $arCckFields;
@@ -131,6 +135,9 @@ Class ExifPHPExtension implements ExifInterface {
           // GPS values.
           case 'gpsaltitude':
           case 'gpsimgdirection':
+            if (!isset($data[$key . 'ref'])) {
+              $data[$key . 'ref'] = 0;
+            }
             $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
             break;
           // Flash values.

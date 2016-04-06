@@ -84,7 +84,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#default_value' => $config->get('nodetypes', array()),
       '#description' => t('Select nodetypes which should be checked for iptc & exif data. In case the nodetypes contains more than one image field, the module will use the first one. If you think no type is usable, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
     );
-    if (Drupal::moduleHandler()->moduleExists("media")) {
+    if (Drupal::moduleHandler()->moduleExists("file_entity")) {
       $all_mt = array();
       // Setup media types
       if (function_exists('file_type_get_enabled_types')) {
@@ -128,7 +128,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
     );
 
     $form['exiftool_location'] = array(
-      '#type' => 'text',
+      '#type' => 'textfield',
       '#title' => t('location of exiftool binary'),
       '#default_value' => $config->get('exiftool_location', "exiftool"),
       '#description' => t('where is the exiftool binaries (only needed if extraction solution chosen is exiftool)'),

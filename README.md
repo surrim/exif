@@ -58,8 +58,8 @@ content settings and add a new type of content 'photography' with default fields
 Then, add exif fields. For the name of the field you need to follow the following
 naming conventions:
 
-Examples
---------
+Basic Examples
+---------------
  #1 field_exif_exposuretime -> this would read the ExposureTime of the image and save it
 in this field.
  #2 field_ifd0_datetime ->	this would read the date time (2009:01:23 08:52:43) of the image.
@@ -72,3 +72,34 @@ Under the exif quickstart (admin/config/media/exif/helper), you can see a list o
 possible information. These informations are taken from the image "sample.jpg".
 I may not contain all tags available. If you are looking for some specific tags you
 can just replace this image with your own image.
+
+Most used values
+-----------------
+Exif :
+Make
+Model
+ExposureTime
+FocalLength
+ISO
+FNumber
+DateTimeOriginal
+ApertureValue
+Flash
+
+UserComment
+
+ExposureCompensation
+ShutterSpeedValue
+ExposureMode
+WhiteBalance
+
+GPS*
+
+XMP
+Artist
+Orientation
+ColorMode
+FlashMode
+FlashFired
+Title
+Keywords

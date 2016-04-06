@@ -27,20 +27,20 @@ class SimpleExifToolFacade implements ExifInterface {
 
   public static function getMetadataSections() {
     $sections = array(
-      'File',
-      'EXIF',
-      'GPS',
-      'IPTC',
-      'XMP',
-      'MakerNotes',
-      'Photoshop',
-      'ICC_Profile',
-      'MIE',
-      'APP12',
-      'DICOM',
-      'GeoTIFF',
-      'JFIF',
-      'Composite'
+      'file',
+      'exif',
+      'gps',
+      'itpc',
+      'xmp',
+      'makernotes',
+      'photoshop',
+      'icc_profile',
+      'mie',
+      'app12',
+      'dicom',
+      'geotiff',
+      'jfif',
+      'composite'
     );
     return $sections;
   }
@@ -97,7 +97,7 @@ class SimpleExifToolFacade implements ExifInterface {
     if ($enable_non_supported_tags) {
       $params=$params." -u -U";
     }
-    $commandline = "exiftool -E -n -json ".$params."\"".$file."\"";
+    $commandline = self::getExecutable()." -E -n -json ".$params."\"".$file."\"";
     $output = array();
     $returnCode = 0;
     exec($commandline,$output,$returnCode);
@@ -110,13 +110,25 @@ class SimpleExifToolFacade implements ExifInterface {
     return $info;
   }
 
+  function tolowerJsonResult($data) {
+    $result = array();
+    foreach($data as $section => $values) {
+      if (is_array($values)) {
+        $result[strtolower($section)]=array_change_key_case($values);
+      } else {
+        $result[strtolower($section)]=$values;
+      }
+
+    }
+    return $result;
+  }
+
   function readAllInformation($file,$enable_sections = true,$enable_markerNote = false,$enable_non_supported_tags = false) {
     $jsonAsString = $this->runTool($file,$enable_sections,$enable_markerNote,$enable_non_supported_tags);
     $json = json_decode($jsonAsString,true);
     $errorCode = json_last_error();
     if ($errorCode == JSON_ERROR_NONE) {
-      print($json);
-      return $json[0];
+      return $this->tolowerJsonResult($json[0]);
     } else {
       $errorMessage = "";
       switch ($errorCode) {
@@ -171,7 +183,9 @@ class SimpleExifToolFacade implements ExifInterface {
     return $info;
   }
 
-
+  public function getFieldKeys() {
+    return array();
+  }
 
 
 }

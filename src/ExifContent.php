@@ -34,41 +34,48 @@ class ExifContent {
    *
    * @param $entity NodeInterface to update
    */
-  function node_insert_update(NodeInterface $entity) {
+  function node_insert_update(NodeInterface $entity, $update = TRUE) {
     $bundles_to_check = $this->get_bundle_for_exif_data();
     if (in_array($entity->getType(), $bundles_to_check)) {
       $exif = ExifFactory::getExifInterface();
       $ar_exif_fields = $this->filter_fields_on_settings($entity);
       $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
-      $image_fields = $this->get_image_fields($entity);
-      $metadata_image_fields = $this->get_image_fields_metadata($entity, $ar_exif_fields, $image_fields);
-      foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
-        $field_name = $drupal_field;
-        $tmp = $entity->get($field_name);
-        $key = $metadata_field_descriptor['metadata_field']['tag'];
-        $section = $metadata_field_descriptor['metadata_field']['section'];
-        if (
-          array_key_exists($section, $metadata_image_fields[$metadata_field_descriptor['image_field']])
-          && array_key_exists($key, $metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
-        ) {
-          $value = $metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
-          if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
-            $value = explode($metadata_field_descriptor['metadata_field_separator'], $value);
-          }
+      if (!$update && isset($entity->original)) {
+        $original = $entity->original;
+        foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
+          $field_name = $drupal_field;
+          $field = $entity->get($field_name);
+          $field->offsetSet(0, $original->get($field_name));
         }
-        else {
-          $value = NULL;
-        }
-        if ($value != NULL) {
-          if (is_array($value)) {
-            $j = 0;
-            foreach ($value as $innerkey => $innervalue) {
-              $this->handle_field($j, $tmp, $section, $key, $innervalue);
-              $j++;
+      } else {
+        $image_fields = $this->get_image_fields($entity);
+        $metadata_image_fields = $this->get_image_fields_metadata($entity, $ar_exif_fields, $image_fields);
+        foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
+          $field_name = $drupal_field;
+          $tmp = $entity->get($field_name);
+          $key = $metadata_field_descriptor['metadata_field']['tag'];
+          $section = $metadata_field_descriptor['metadata_field']['section'];
+          if (
+            array_key_exists($section, $metadata_image_fields[$metadata_field_descriptor['image_field']])
+            && array_key_exists($key, $metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
+          ) {
+            $value = $metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
+            if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
+              $value = explode($metadata_field_descriptor['metadata_field_separator'], $value);
             }
+          } else {
+            $value = NULL;
           }
-          else {
-            $this->handle_field(0, $tmp, $section, $key, $value);
+          if ($value != NULL) {
+            if (is_array($value)) {
+              $j = 0;
+              foreach ($value as $innerkey => $innervalue) {
+                $this->handle_field($j, $tmp, $section, $key, $innervalue);
+                $j++;
+              }
+            } else {
+              $this->handle_field(0, $tmp, $section, $key, $value);
+            }
           }
         }
       }
@@ -347,7 +354,8 @@ class ExifContent {
       $exif_value = Html::escape(utf8_encode($exif_value));
     }
     $config = Drupal::config('exif.settings');
-    $chosen_vocabulary = $config->get('vocabulary');
+    //$chosen_vocabulary = $config->get('vocabulary');
+    $chosen_vocabulary = array_keys($field->getSettings('vocabulary')['handler_settings']['target_bundles'])[0];
     if (isset($chosen_vocabulary)) {
       //$vocabulary = Vocabulary::load($chosen_vocabulary);
       $terms = taxonomy_term_load_multiple_by_name($exif_value, $chosen_vocabulary);
