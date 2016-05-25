@@ -1,0 +1,9 @@
+quickstart:
+    version: 1.0
+    js:
+        js/quickstart.js: {}
+    css:
+        theme:
+            css/quickstart.css: {}
+    dependencies:
+        - core/jquery

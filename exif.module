@@ -10,40 +10,6 @@ use Drupal\exif\ExifHelp;
  * @author: Jean-Philippe Hautin
  *
  */
-/*
-function exif_menu() {
-  $items['admin/config/media/exif'] = array(
-    'title' => 'Image Metadata',
-    'page callback' => 'exif_admin_settings',
-    'access arguments' => array('administer image metadata'),
-    'description' => t('Display available fields'),
-    'access callback' => 'user_access',
-    'file' => 'exif.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['admin/config/media/exif/general'] = array(
-    'title' => 'Image Metadata',
-    'page callback' => 'esettingsxif_admin_settings',
-    'access arguments' => array('administer image metadata'),
-    'description' => t('Display available fields'),
-    'access callback' => 'user_access',
-    'file' => 'exif.admin.inc',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/media/exif/settings'] = array(
-    'title' => 'Image Metadata fields settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('exif_admin_settings_form'),
-    'access arguments' => array('administer image metadata'),
-    'description' => t('Images Metadata Settings'),
-    'access callback' => 'user_access',
-  	'file' => 'exif.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  return $items;
-}
-*/
-
 
 /**
  * Implements hook_help().
@@ -95,7 +61,4 @@ function exif_entity_presave(EntityInterface $entity) {
     }
   }
 }
-
-
-
 

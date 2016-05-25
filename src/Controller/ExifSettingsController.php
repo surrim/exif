@@ -10,6 +10,8 @@ use Drupal;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Routing\LocalRedirectResponse;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
@@ -18,6 +20,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ExifSettingsController extends ControllerBase {
 
@@ -43,12 +46,17 @@ class ExifSettingsController extends ControllerBase {
       "vid" => "photographs_metadata",
       "description" => "information related to photographs"
     );
-    Vocabulary::create($values)->save();
-    //TODO
-    return [
-      '#message' => $this->t('The new vocabulary photography has been fully created'),
-      '#theme' => 'exif_helper_page'
-    ];
+    $voc = Vocabulary::load("photographs_metadata");
+    if (!$voc) {
+      Vocabulary::create($values)->save();
+      $message = $this->t('The  vocabulary photography has been created');
+    } else {
+      $message = $this->t('The  vocabulary photography is already created. nothing to do');
+    }
+    drupal_set_message($message);
+    $response = new RedirectResponse('/admin/config/media/exif/helper');
+    $response->send();
+    exit();
   }
 
   protected function configureEntityFormDisplay($field_name, $widget_id = NULL) {
@@ -83,6 +91,31 @@ class ExifSettingsController extends ControllerBase {
         'type' => $fieldType,
         'translatable' => FALSE,
       ];
+      $this->entityTypeManager()
+        ->getStorage('field_storage_config')
+        ->create($field_storage_values)
+        ->save();
+    }
+    $this->node_add_extra_field($type, $realFieldName, $fieldLabel, $fieldWidget, $widgetSettings);
+  }
+
+  protected function addReferenceToContentType(NodeTypeInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldTypeBundle, $fieldWidget, $widgetSettings = array(), $settings = array()) {
+    $realFieldName = 'field_' . $fieldName;
+    $field_storage = FieldStorageConfig::loadByName('node', $realFieldName);
+    if (empty($field_storage)) {
+      $field_storage_values = array(
+        'field_name' => $realFieldName,
+        'field_label' => $fieldLabel,
+        'entity_type' => 'node',
+        'bundle' => $type->id(),
+        'type' => 'entity_reference',
+        'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        'translatable' => FALSE,
+        'settings' => array(
+          'target_type' => $fieldType,
+          'handler_settings' => array('target_bundles' => array($fieldTypeBundle)),
+        )
+      );
       $this->entityTypeManager()
         ->getStorage('field_storage_config')
         ->create($field_storage_values)
@@ -150,59 +183,65 @@ class ExifSettingsController extends ControllerBase {
     $nodeTypeName = 'Photography';
     $machinename = strtolower($nodeTypeName);
 
-    $node_type = NodeType::load($machinename);
-    if (!$node_type) {
-      $node_type = NodeType::create(
-        [
-          'name' => $nodeTypeName,
-          'type' => $machinename,
-          'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
-        ]);
-      $node_type->save();
-      node_add_body_field($node_type);
+    try {
+
+      $node_type = NodeType::load($machinename);
+      if (!$node_type) {
+        $node_type = NodeType::create(
+          [
+            'name' => $nodeTypeName,
+            'type' => $machinename,
+            'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
+          ]);
+        $node_type->save();
+        node_add_body_field($node_type);
+      }
+
+      //add default display
+      $values = array(
+        'targetEntityType' => 'node',
+        'bundle' => $machinename,
+        'mode' => 'default',
+        'status' => TRUE
+      );
+      $this->entityTypeManager()
+        ->getStorage('entity_view_display')
+        ->create($values);
+
+      //add default form display
+      $values = array(
+        'targetEntityType' => 'node',
+        'bundle' => $machinename,
+        'mode' => 'default',
+        'status' => TRUE,
+      );
+      $this->entityTypeManager()
+        ->getStorage('entity_form_display')
+        ->create($values);
+
+      //$this->configureEntityFormDisplay($fieldName);
+      //$this->configureEntityViewDisplay($fieldName);
+
+      //then add fields
+      //add photo field of type image_field
+      $this->addFieldToContentType($node_type, 'Photo', 'image', 'image', 'exif_readonly');
+      $this->addFieldToContentType($node_type, 'Model', 'exif_model', 'text', 'exif_readonly');
+      $widget_settings = [
+        'image_field' => 'field_image',
+        'exif_field' => 'naming_convention'
+      ];
+      $this->addFieldToContentType($node_type, 'Creation date', 'exif_filedatetime', 'datetime', 'exif_readonly', $widget_settings);
+      $this->addReferenceToContentType($node_type, 'Photographer', 'exif_author', 'taxonomy_term','taxonomy', 'exif_readonly', $widget_settings);
+
+      $message = $this->t('The node type photography has been fully created');
+
+    } catch (FieldException $fe) {
+      $message = $this->t('An unexpected error was thrown during creation : '+$fe->getMessage());
     }
-
-    //add default display
-    $values = array(
-      'targetEntityType' => 'node',
-      'bundle' => $machinename,
-      'mode' => 'default',
-      'status' => TRUE
-    );
-    $this->entityTypeManager()
-      ->getStorage('entity_view_display')
-      ->create($values);
-
-    //add default form display
-    $values = array(
-      'targetEntityType' => 'node',
-      'bundle' => $machinename,
-      'mode' => 'default',
-      'status' => TRUE,
-    );
-    $this->entityTypeManager()
-      ->getStorage('entity_form_display')
-      ->create($values);
-
-    //$this->configureEntityFormDisplay($fieldName);
-    //$this->configureEntityViewDisplay($fieldName);
-
-    //then add fields
-    //add photo field of type image_field
-    $this->addFieldToContentType($node_type, 'Photo', 'image', 'image', 'exif_readonly');
-    $this->addFieldToContentType($node_type, 'Model', 'exif_model', 'text', 'exif_readonly');
-    $widget_settings = [
-      'image_field' => 'field_image',
-      'exif_field' => 'naming_convention'
-    ];
-    $this->addFieldToContentType($node_type, 'Creation date', 'exif_filedatetime', 'datetime', 'exif_readonly', $widget_settings);
-    $this->addFieldToContentType($node_type, 'Photographer', 'exif_author', 'taxonomy_term', 'exif_readonly', $widget_settings);
-
-
-    return [
-      '#message' => $this->t('The node type photography has been fully created'),
-      '#theme' => 'exif_helper_page'
-    ];
+    drupal_set_message($message);
+    $response = new RedirectResponse('/admin/config/media/exif/helper');
+    $response->send();
+    exit();
   }
 
 
@@ -261,9 +300,11 @@ class ExifSettingsController extends ControllerBase {
    * Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
    */
   public function setupImageMediaType() {
-    return array(
-      '#markup' => '<p>' . $this->t('The new node type photography has been fully created') . '</p>',
-    );
+    $message = 'nothing done.';
+    drupal_set_message($message);
+    $response = new RedirectResponse('/admin/config/media/exif/helper');
+    $response->send();
+    exit();
   }
 
 

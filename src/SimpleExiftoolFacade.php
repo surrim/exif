@@ -25,26 +25,6 @@ class SimpleExifToolFacade implements ExifInterface {
     return self::$instance;
   }
 
-  public static function getMetadataSections() {
-    $sections = array(
-      'file',
-      'exif',
-      'gps',
-      'itpc',
-      'xmp',
-      'makernotes',
-      'photoshop',
-      'icc_profile',
-      'mie',
-      'app12',
-      'dicom',
-      'geotiff',
-      'jfif',
-      'composite'
-    );
-    return $sections;
-  }
-
   /**
    * Going through all the fields that have been created for a given node type
    * and try to figure out which match the naming convention -> so that we know
@@ -57,11 +37,10 @@ class SimpleExifToolFacade implements ExifInterface {
    * @return array a list of exif tags to read for this image
    */
   public function getMetadataFields($arCckFields = array()) {
-    $arSections = SimpleExifToolFacade::getMetadataSections();
     foreach ($arCckFields as $drupal_field => $metadata_settings) {
       $metadata_field = $metadata_settings['metadata_field'];
       $ar = explode("_", $metadata_field);
-      if (isset($ar[0]) && in_array($ar[0], $arSections)) {
+      if (isset($ar[0])) {
         $section = $ar[0];
         unset($ar[0]);
         $arCckFields[$drupal_field]['metadata_field'] = array(
@@ -152,7 +131,7 @@ class SimpleExifToolFacade implements ExifInterface {
           break;
       }
       // Logs a notice
-      Drupal::logger('exif')->warning(t($errorMessage));
+      Drupal::logger('exif')->notice(t($errorMessage));
       return array();
     }
   }
