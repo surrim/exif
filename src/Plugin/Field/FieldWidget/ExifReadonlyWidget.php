@@ -20,8 +20,8 @@ use Drupal\field\Entity\FieldConfig;
  *
  * @FieldWidget(
  *   id = "exif_readonly",
- *   label = @Translation("metadata from image"),
- *   description = @Translation("field content is calculated from image field in the same content type (read only)"),
+ *   label = @Translation("metadata from image (viewable in forms)"),
+ *   description = @Translation("field content is calculated from image field in the same content type (field are viewable but readonly in forms)"),
  *   multiple_values = true,
  *   field_types = {
  *     "text",
@@ -33,248 +33,27 @@ use Drupal\field\Entity\FieldConfig;
  *   }
  * )
  */
-class ExifReadonlyWidget extends WidgetBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public function settingsForm(array $form, FormStateInterface $form_state) {
-    $element = parent::settingsForm($form, $form_state);
-    $exif_fields = $this->retrieveExifFields();
-    $default_exif_value = $this->retrieveExifFieldDefaultValue();
-    $default_exif_separator_value = $this->retrieveExifFieldDefaultSeparatorValue();
-    if ($form['#entity_type'] == "node") {
-      $image_fields = $this->retrieveImageFieldFromBundle($form['#entity_type'], $form['#bundle']);
-      $default_image_value = $this->retrieveImageFieldDefaultValue($element, $image_fields);
-      $element['image_field'] = array(
-        '#type' => 'radios',
-        '#title' => t('image field to use to retreive data'),
-        '#description' => t('determine the image used to look for exif and iptc metadata'),
-        '#options' => $image_fields,
-        '#default_value' => $default_image_value,
-        '#element_validate' => array(
-          array(
-            get_class($this),
-            'validateImageField'
-          )
-        )
-      );
-    }
-    if ($form['#entity_type'] == "file") {
-      $element['image_field'] = array(
-        '#type' => 'hidden',
-        '#default_value' => "file",
-        '#value' => "file",
-      );
-    }
-    $element['exif_field'] = array(
-      '#type' => 'select',
-      '#title' => t('exif field data'),
-      '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
-      '#options' => array_merge(array('naming_convention' => 'name of the field is used as the exif field name'), $exif_fields),
-      '#default_value' => $default_exif_value,
-      '#element_validate' => array(
-        array(
-          get_class($this),
-          'validateExifField'
-        )
-      )
-    );
-    $form['exif_field_separator'] = array(
-      '#type' => 'textfield',
-      '#title' => t('exif field separator'),
-      '#description' => t('separator used to split values (if field definition support several values). let it empty if you do not want to split values.'),
-      '#default_value' => $default_exif_separator_value,
-      '#element_validate' => array(
-        array(
-          get_class($this),
-          'validateExifFieldSeparator'
-        )
-      )
-    );
-    return $element;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function settingsSummary() {
-    $summary = parent::settingsSummary();
-
-    $exif_field_separator = $this->getSetting('exif_field_separator');
-    if (isset($exif_field_separator) && strlen($exif_field_separator) < 2) {
-      $exif_field_msg = t('exif value will be split using character separator @metadata', array('@metadata' => $exif_field_separator));
-    }
-    else {
-      $exif_field_msg = t('exif value will be extracted as one value');
-    }
-    array_unshift($summary, $exif_field_msg);
-
-    $exif_field = $this->getSetting('exif_field');
-    if (isset($exif_field) && $exif_field != 'naming_convention') {
-      $exif_field_msg = t('exif data will be extracted from image metadata field @metadata', array('@metadata' => $exif_field));
-    }
-    else {
-      $fieldname = $this->fieldDefinition->getName();
-      $exif_field = $fieldname . substr_replace("field_", "", 0);
-      $exif_field_msg = t('Using naming convention. so the exif data will be extracted from image metadata field @metadata', array('@metadata' => $exif_field));
-    }
-    array_unshift($summary, $exif_field_msg);
-
-    $image_field = $this->getSetting('image_field');
-    if (isset($image_field)) {
-      $image_field_msg = t('exif will be extracted from image @image', array('@image' => $image_field));
-    }
-    else {
-      $image_field_msg = t('No image chosen. field will stay empty.');
-    }
-    array_unshift($summary, $image_field_msg);
-
-
-    return $summary;
-  }
-
+class ExifReadonlyWidget extends ExifWidgetBase {
   /**
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
-    //$form['#attached']['css'][] = drupal_get_path('module', 'exif') . '/exif.css';
+    $value = $items->getValue();
+    $entity_type = $items->getFieldDefinition()->getTargetEntityTypeId();
+    $access = \Drupal::entityManager()->getAccessControlHandler($entity_type)->fieldAccess('view', $items->getFieldDefinition());
+    if (!$access) {
+      $element += array(
+        '#type' => '#hidden',
+        '#value' => ''
+      );
+    }
+    $element +=  $items->view();
     $element += array(
-      '#type' => '#hidden',
-      '#value' => '',
-      '#process' => array(array(get_class($this), 'process')),
+      '#value' => $value,
+      '#default_value' => $value
     );
     return $element;
   }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function defaultSettings() {
-    return array(
-      'exif_field_separator' => '',
-      'exif_field' => 'naming_convention',
-      'exif_update' => TRUE,
-      'image_field' => NULL
-    ) + parent::defaultSettings();
-  }
-
-
-  function process($element, FormStateInterface $form_state, $form) {
-
-    $element['tid'] = array(
-      '#type' => 'hidden',
-      '#value' => '',
-    );
-    $element['value'] = array(
-      '#type' => 'hidden',
-      '#value' => '',
-    );
-    $element['timezone'] = array(
-      '#type' => 'hidden',
-      '#value' => '',
-    );
-    $element['value2'] = array(
-      '#type' => 'hidden',
-      '#value' => '',
-    );
-
-    $element['display'] = array(
-      '#type' => 'hidden',
-      '#value' => '',
-    );
-    return $element;
-  }
-
-  function validateImageField($element, FormStateInterface $form_state, $form) {
-    $elementSettings = $form_state->getValue($element['#parents']);
-    if (!$elementSettings) {
-      //$form_state->setErrorByName('image_field', t('you must choose at least one image field to retreive metadata.'));
-      $field_storage_definitions = Drupal::entityManager()
-        ->getFieldStorageDefinitions($form['#entity_type']);
-      $field_storage = $field_storage_definitions[$element['#field_name']];
-      if ($field_storage) {
-        $args = array('%field' => $field_storage->getName());
-        $message = t('Field %field must be link to an image field.', $args);
-      } else {
-        $message = t('Field must be link to an image field.');
-      }
-      $form_state->setErrorByName('image_field', $message);
-    }
-  }
-
-  function validateExifField($element, FormStateInterface $form_state, $form) {
-    $elementSettings = $form_state->getValue($element['#parents']);
-    if (!$elementSettings) {
-      $message = t('you must choose at least one method to retreive image metadata.');
-      $form_state->setErrorByName('exif_field', $message);
-    }
-  }
-
-  function validateExifFieldSeparator($element, &$form_state) {
-    $elementSettings = $form_state->getValue($element['#parents']);
-    if (!empty($elementSettings) && strlen($elementSettings) > 1) {
-      $message = t('the separator is only one character long.');
-      $form_state->setErrorByName('exif_field_separator', $message);
-    }
-  }
-
-  /**
-   * @return array of possible exif fields
-   */
-  private function retrieveExifFields() {
-    $exif = ExifFactory::getExifInterface();
-    return $exif->getFieldKeys();
-  }
-
-
-  private function retrieveExifFieldDefaultValue() {
-    $result = $this->getSetting('exif_field');
-    if (empty($result)) {
-      $result = 'naming_convention';
-    }
-    return $result;
-  }
-
-  private function retrieveExifFieldDefaultSeparatorValue() {
-    $result = $this->getSetting('exif_field_separator');
-    if (empty($result)) {
-      $result = '';
-    }
-    return $result;
-  }
-
-
-  /**
-   * calculate default value for settings form (more precisely image_field setting) of widget.
-   * @param $widget
-   * @param $image_fields
-   */
-  function retrieveImageFieldDefaultValue($widget, $image_fields) {
-    $result = $widget['settings']['image_field'];
-    if (empty($result)) {
-      $temp = array_keys($image_fields);
-      if (!empty($temp) && is_array($temp)) {
-        $result = $temp[0];
-      }
-    }
-    return $result;
-  }
-
-  function retrieveImageFieldFromBundle($entity_type, $bundle_name) {
-    $fields_of_bundle = \Drupal::entityManager()
-      ->getFieldDefinitions($entity_type, $bundle_name);
-    $result = array();
-    foreach ($fields_of_bundle as $key => $value) {
-      if ($value instanceof FieldConfig) {
-        if ($value->getType() == "image" || $value->getType() == "media") {
-          $result[$key] = $value->getLabel() . " (" . $key . ")";
-        }
-      }
-    }
-    return $result;
-  }
-
 }
 
 ?>
