@@ -49,32 +49,34 @@ class ExifContent {
         }
       } else {
         $image_fields = $this->get_image_fields($entity);
-        $metadata_image_fields = $this->get_image_fields_metadata($entity, $ar_exif_fields, $image_fields);
+        $metadata_images_fields = $this->get_image_fields_metadata($entity, $ar_exif_fields, $image_fields);
         foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
           $field_name = $drupal_field;
-          $tmp = $entity->get($field_name);
+          $field = $entity->get($field_name);
           $key = $metadata_field_descriptor['metadata_field']['tag'];
           $section = $metadata_field_descriptor['metadata_field']['section'];
-          if (
-            array_key_exists($section, $metadata_image_fields[$metadata_field_descriptor['image_field']])
-            && array_key_exists($key, $metadata_image_fields[$metadata_field_descriptor['image_field']][$section])
-          ) {
-            $value = $metadata_image_fields[$metadata_field_descriptor['image_field']][$section][$key];
-            if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
-              $value = explode($metadata_field_descriptor['metadata_field_separator'], $value);
-            }
-          } else {
-            $value = NULL;
-          }
-          if ($value != NULL) {
-            if (is_array($value)) {
-              $j = 0;
-              foreach ($value as $innerkey => $innervalue) {
-                $this->handle_field($j, $tmp, $section, $key, $innervalue);
-                $j++;
+          if (array_key_exists($metadata_field_descriptor['image_field'], $metadata_images_fields)) {
+            $values = array();
+            foreach ($metadata_images_fields[$metadata_field_descriptor['image_field']] as $metadata_image_fields) {
+              if (array_key_exists($section, $metadata_image_fields)
+                && array_key_exists($key, $metadata_image_fields[$section])
+              ) {
+                $value = $metadata_image_fields[$section][$key];
+                if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
+                  $subValues = explode($metadata_field_descriptor['metadata_field_separator'], $value);
+                  foreach ($subValues as $index => $subValue) {
+                    $values[] = $subValue;
+                  }
+                }
+                else {
+                  $values[] = $value;
+                }
               }
-            } else {
-              $this->handle_field(0, $tmp, $section, $key, $value);
+            }
+            $j = 0;
+            foreach ($values as $innerkey => $value) {
+              $this->handle_field($j, $field, $section, $key, $value);
+              $j++;
             }
           }
         }
@@ -171,10 +173,10 @@ class ExifContent {
   function get_image_fields_metadata(FieldableEntityInterface $entity, &$ar_exif_fields, $image_fields) {
     $result = array();
     if (empty($ar_exif_fields)) {
-      return TRUE;                                                                              //then check it is an array
+      return TRUE;
     }
     if (empty($image_fields)) {
-      return FALSE;                                                                             //then check it is an array
+      return FALSE;
     }
 
     foreach ($ar_exif_fields as $drupal_field => $metadata_settings) {
@@ -183,12 +185,14 @@ class ExifContent {
         $result[$field_image_name] = array();
       }
       else {
-        $image_descriptor = $this->get_file_uri_and_language($entity, $field_image_name);
-        if ($image_descriptor == FALSE) {
+        $images_descriptor = $this->get_file_uri_and_language($entity, $field_image_name);
+        if ($images_descriptor == FALSE) {
           $fullmetadata = array();
         }
         else {
-          $fullmetadata = $this->get_data_from_file_uri($image_descriptor['uri']);
+          foreach ($images_descriptor as $index => $image_descriptor) {
+            $fullmetadata[$index] = $this->get_data_from_file_uri($image_descriptor['uri']);
+          }
         }
         $result[$field_image_name] = $fullmetadata;
         $ar_exif_fields[$drupal_field]['language'] = $image_descriptor['language'];
@@ -202,22 +206,29 @@ class ExifContent {
    *
    * @param FieldableEntityInterface $entity the netity to look for
    * @param $field_image_name string the field name containing the image
-   * @return array|bool a simple array with uri and language of the image of FALSE if the file is not readable.
+   * @return array|bool a simple array with uri and language for each images in the field of FALSE if the entity type is not known.
    */
   function get_file_uri_and_language(FieldableEntityInterface $entity, $field_image_name) {
     $result = FALSE;
     if ($entity->getEntityTypeId() == 'node') {
       $image_field_instance = $entity->get($field_image_name);
       if ($image_field_instance instanceof FileFieldItemList) {
+        $nbImages = count($image_field_instance->getValue());
         $result = array();
-        $result['uri'] = $image_field_instance->entity->uri[0];
-        $result['language'] = $image_field_instance->entity->language();
+        for ($i=0; $i<$nbImages; $i++) {
+          $result[$i] = array();
+          $tmp = $image_field_instance->get($i)->entity;
+          $result[$i]['uri'] = $tmp->uri[0];
+          $result[$i]['language'] = $tmp->language();
+        }
       }
     }
     else {
       if ($entity->getEntityTypeId() == 'file') {
-        $result['uri'] = $entity->uri;
-        $result['language'] = $entity->language();
+        $result = array();
+        $result[0] = array();
+        $result[0]['uri'] = $entity->uri;
+        $result[0]['language'] = $entity->language();
       }
     }
     return $result;
