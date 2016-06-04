@@ -56,7 +56,7 @@ Class ExifPHPExtension implements ExifInterface {
     foreach ($arCckFields as $drupal_field => $metadata_settings) {
       $metadata_field = $metadata_settings['metadata_field'];
       $ar = explode("_", $metadata_field);
-      if (isset($ar[0]) && in_array($ar[0], $arSections)) {
+      if (isset($ar[0]) && (in_array($ar[0], $arSections) || $ar[0]=='all')) {
         $section = $ar[0];
         unset($ar[0]);
         $arCckFields[$drupal_field]['metadata_field'] = array(
@@ -263,7 +263,7 @@ Class ExifPHPExtension implements ExifInterface {
 
   /**
    * $arOptions liste of options for the method :
-   * # enable_sections : (default : TRUE) retreive also sections.
+   * # enable_sections : (default : TRUE) retrieve also sections.
    * @param string $file
    * @param boolean $enable_sections
    * @return array $data

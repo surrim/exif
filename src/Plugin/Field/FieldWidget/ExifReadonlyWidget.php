@@ -33,7 +33,7 @@ use Drupal\field\Entity\FieldConfig;
  *   }
  * )
  */
-class ExifReadonlyWidget extends ExifWidgetBase {
+class ExifReadonlyWidget extends ExifFieldWidgetBase {
   /**
    * {@inheritdoc}
    */

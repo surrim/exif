@@ -56,27 +56,44 @@ class ExifContent {
           $key = $metadata_field_descriptor['metadata_field']['tag'];
           $section = $metadata_field_descriptor['metadata_field']['section'];
           if (array_key_exists($metadata_field_descriptor['image_field'], $metadata_images_fields)) {
-            $values = array();
-            foreach ($metadata_images_fields[$metadata_field_descriptor['image_field']] as $metadata_image_fields) {
-              if (array_key_exists($section, $metadata_image_fields)
-                && array_key_exists($key, $metadata_image_fields[$section])
-              ) {
-                $value = $metadata_image_fields[$section][$key];
-                if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
-                  $subValues = explode($metadata_field_descriptor['metadata_field_separator'], $value);
-                  foreach ($subValues as $index => $subValue) {
-                    $values[] = $subValue;
+            if ($key == "all") {
+              $j = 0;
+              foreach ($metadata_images_fields[$metadata_field_descriptor['image_field']] as $metadata_image_fields) {
+                $html = '<table class="metadata-table"><tbody>';
+                foreach ($metadata_image_fields as $currentSection => $currentValues) {
+                  $html .= '<tr class="metadata-section"><td colspan=2>'.$currentSection.'</td></tr>';
+                  foreach ($currentValues as $currentKey => $currentValue) {
+                    $exif_value = $this->sanitize_value($currentValue);
+                    $html .= '<tr class="metadata-value"><td>'.$currentKey.'</td><td>'.$exif_value.'</td></tr>';
                   }
                 }
-                else {
-                  $values[] = $value;
+                $html .= '</tbody><tfoot></tfoot></table>';
+                $this->handle_text_field($j, $field, $section, $key, array("value" => $html , 'format' => 'full_html'));
+                $j++;
+              }
+            } else {
+              $values = array();
+              foreach ($metadata_images_fields[$metadata_field_descriptor['image_field']] as $metadata_image_fields) {
+                if (array_key_exists($section, $metadata_image_fields)
+                  && array_key_exists($key, $metadata_image_fields[$section])
+                ) {
+                  $value = $metadata_image_fields[$section][$key];
+                  if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
+                    $subValues = explode($$this->metadata_field_descriptor['metadata_field_separator'], $value);
+                    foreach ($subValues as $index => $subValue) {
+                      $values[] = $subValue;
+                    }
+                  }
+                  else {
+                    $values[] = $value;
+                  }
                 }
               }
-            }
-            $j = 0;
-            foreach ($values as $innerkey => $value) {
-              $this->handle_field($j, $field, $section, $key, $value);
-              $j++;
+              $j = 0;
+              foreach ($values as $innerkey => $value) {
+                $this->handle_field($j, $field, $section, $key, $value);
+                $j++;
+              }
             }
           }
         }
