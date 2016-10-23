@@ -10,21 +10,18 @@
 <p>{% trans %}The Exif module allows you :{% endtrans %}
 <ul>
   <li>{% trans %}extract metadata from an image{% endtrans %}</li>
-  <li>{% trans %}to classify your images by settings terms in taxonamy vocabulary{% endtrans %}</li>
+  <li>{% trans %}to classify your images by settings terms in taxonomy vocabulary{% endtrans %}</li>
 </ul>
-{% trans %}To classify images, you define <em>vocabularies</em> that contain related <em>terms</em>, and then assign the vocabularies to content types. For more information, see the online handbook entry for the <a href="@taxonomy">Taxonomy module</a>.', array('@taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/){% endtrans %}
+{% trans %}To classify images, you define <em>vocabularies</em> that contain related <em>terms</em>, and then assign the vocabularies to content types. For more information, see the online handbook entry for the <a href="{{ taxonomy }}">Taxonomy module</a>.{% endtrans %}
 </p>
 <h3>{% trans %}Uses{% endtrans %}</h3>
 <dl>
   <dt>{% trans %}Creating vocabularies{% endtrans %}</dt>
-  <dd>{% trans %}Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> through the <a href="@taxo">Taxonomy page</a>.
-    The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary,
-    in a hierarchical fashion.
-    <!--A <em>controlled vocabulary</em> classifying music by genre with terms and sub-terms could look as follows:-->
-    {% endtrans %}
+  <dd>{% trans %}This is optional{% endtrans %}
+      {% trans %}Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> through the <a href="@taxo">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion.{% endtrans %}
     {% trans %}If you want, the exif module can create in the chosen vocabulary (by default "Photographies\' metadata"), the following structure:{% endtrans %}
-    <ul>
-      <li>{% trans %}<em>vocabulary</em>: Photographies\'metadata{% endtrans %}</li>
+    <ul class="vocabulary-structure">
+      <li>{% trans %}<em>vocabulary</em>: Photographies' metadata{% endtrans %}</li>
       <ul>
         <li>{% trans %}<em>term</em>: iptc{% endtrans %}</li>
         <ul>
@@ -57,10 +54,10 @@
         </ul>
       </ul>
     </ul>
-    <a class="button form-submit" href="helper/vocabulary">{% trans %}create a vocabulary for my
+    <a class="button button-small form-submit" href="helper/vocabulary">{% trans %}create a vocabulary for my
       photos.{% endtrans %}</a>
   </dd>
-  <dt>{% trans %}Creating node type for Photos{% endtrans %}</dt>
+  <dt>{% trans %}Creating type for Photos{% endtrans %}</dt>
   <dd>{% trans %}To get metadata information of an image, you have to choose on which node type the extraction should be made.{% endtrans %}
     {% trans %}You also have to create fields with specific names using the new Field UI.{% endtrans %}
     {% trans %}The type of the field can be :{% endtrans %}
@@ -77,7 +74,9 @@
     {% trans %}if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).{% endtrans %}
     {% trans %}if you want, the exif module can create a node type 'Photography' with a image field and some basic
     metadata fields (keywords, model and title).{% endtrans %}<br>
-    <a class="button form-submit" href="helper/nodetype">{% trans %}create a node content type for my
+    <a class="button button-small form-submit" href="helper/nodetype">{% trans %}create a <b>node</b> content type for my
+      photos.{% endtrans %}</a> <b>OR</b>
+    <a class="button button-small form-submit" href="helper/nodetype">{% trans %}create a <b>media</b> content type for my
       photos.{% endtrans %}</a>
   </dd>
 </dl>

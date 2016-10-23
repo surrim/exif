@@ -32,13 +32,13 @@ class ExifContent {
   /**
    * Main entrypoint of the module.
    *
-   * @param $entity NodeInterface to update
+   * @param $entity FieldableEntityInterface to update
    */
-  function node_insert_update(NodeInterface $entity, $update = TRUE) {
+  function entity_insert_update($entityType, FieldableEntityInterface $entity, $update = TRUE) {
     $bundles_to_check = $this->get_bundle_for_exif_data();
-    if (in_array($entity->getType(), $bundles_to_check)) {
+    if (in_array($entity->bundle(), $bundles_to_check)) {
       $exif = ExifFactory::getExifInterface();
-      $ar_exif_fields = $this->filter_fields_on_settings($entity);
+      $ar_exif_fields = $this->filter_fields_on_settings($entityType, $entity);
       $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
       if (!$update && isset($entity->original)) {
         $original = $entity->original;
@@ -129,18 +129,30 @@ class ExifContent {
    * @param NodeInterface $entity the entity to look for metadata fields
    * @return array the list of metadata fields found in the entity
    */
-  function filter_fields_on_settings(NodeInterface $entity) {
+  function filter_fields_on_settings($entityType, FieldableEntityInterface $entity) {
     $result = array();
     foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
       if ($fieldDefinition instanceof FieldConfigInterface) {
         $settings = \Drupal::entityTypeManager()
           ->getStorage('entity_form_display')
-          ->load('node.' . $entity->bundle() . '.default')
+          ->load($entityType. '.' . $entity->bundle() . '.default')
           ->getComponent($fieldName)['settings'];
-        $exifField = $settings['exif_field'];
-        $exifFieldSeparator = $settings['exif_field_separator'];
-        $imageField = $settings['image_field'];
-        $mediaField = $settings['media_generic'];
+        $exifField = NULL;
+        if (array_key_exists('exif_field',$settings)) {
+          $exifField = $settings['exif_field'];
+        }
+        $exifFieldSeparator = NULL;
+        if (array_key_exists('exif_field_separator',$settings)) {
+          $exifFieldSeparator = $settings['exif_field_separator'];
+        }
+        $imageField = NULL;
+        if (array_key_exists('image_field',$settings)) {
+          $imageField = $settings['image_field'];
+        }
+        $mediaField = NULL;
+        if (array_key_exists('media_generic',$settings)) {
+          $mediaField = $settings['media_generic'];
+        }
         if (isset($exifField) && ((isset($imageField)) || (isset($mediaField)))) {
           $element = array();
           if ($exifField == 'naming_convention') {
@@ -174,7 +186,7 @@ class ExifContent {
    */
   function get_image_fields(FieldableEntityInterface $entity) {
     $result = array();
-    if ($entity->getEntityTypeId() == 'node') {
+    if ($entity->getEntityTypeId() == 'node' or $entity->getEntityTypeId() == 'media' ) {
       foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
         if ($fieldDefinition->getType() == 'image') {
           $result[$fieldName] = $fieldDefinition;
@@ -227,7 +239,7 @@ class ExifContent {
    */
   function get_file_uri_and_language(FieldableEntityInterface $entity, $field_image_name) {
     $result = FALSE;
-    if ($entity->getEntityTypeId() == 'node') {
+    if ($entity->getEntityTypeId() == 'node' || $entity->getEntityTypeId() == 'media') {
       $image_field_instance = $entity->get($field_image_name);
       if ($image_field_instance instanceof FileFieldItemList) {
         $nbImages = count($image_field_instance->getValue());

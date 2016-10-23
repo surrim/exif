@@ -46,7 +46,7 @@ exif.helper.nodetype:
 exif.helper.mediatype:
   path: '/admin/config/media/exif/helper/mediatype'
   defaults:
-    _title: "Setup image media type"
-    _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::setupImageMediaType"
+    _title: "create new Photography media type"
+    _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::createPhotographyMediaType"
   requirements:
     _permission: "access content"

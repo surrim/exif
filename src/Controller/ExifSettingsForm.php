@@ -69,8 +69,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => t('If a timestamp is selected (for example the date the picture was taken), you can specify here how granular the timestamp should be. If you select default it will just take whatever is available in the picture. If you select Day, the Date saved will look something like 13-12-2008. This can be useful if you want to use some kind of grouping on the data.'),
     );
 
-    $all_nodetypes = $this->entityTypeManager->getStorage('node_type')
-      ->loadMultiple();
+    $all_nodetypes = $this->entityTypeManager->getStorage('node_type')->loadMultiple();
     $all_nt = array();
     //$all_nt[0] = 'None';
     foreach ($all_nodetypes as $item) {
@@ -82,8 +81,11 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#title' => t('Nodetypes'),
       '#options' => $all_nt,
       '#default_value' => $config->get('nodetypes', array()),
-      '#description' => t('Select nodetypes which should be checked for iptc & exif data. In case the nodetypes contains more than one image field, the module will use the first one. If you think no type is usable, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
+      '#description' => t('Select nodetypes which should be checked for iptc & exif data.'),
     );
+
+
+    //the old way (still in use so keep it)
     if (Drupal::moduleHandler()->moduleExists("file_entity")) {
       $all_mt = array();
       // Setup media types
@@ -101,7 +103,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
           }
         }
       }
-
       $form['mediatypes'] = array(
         '#type' => 'checkboxes',
         '#title' => t('Mediatypes'),
@@ -109,6 +110,27 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#default_value' => $config->get('mediatypes', array()),
         '#description' => t('Select mediatypes which should be checked for itpc & exif data.'),
       );
+    } else {
+      if (Drupal::moduleHandler()->moduleExists("media_entity")) {
+        $all_mediatypes = $this->entityTypeManager->getStorage('media_bundle')->loadMultiple();
+        $all_mt = array();
+        //$all_nt[0] = 'None';
+        foreach ($all_mediatypes as $item) {
+          $all_mt[$item->id()] = $item->label();
+        }
+        $form['mediatypes'] = array(
+          '#type' => 'checkboxes',
+          '#title' => t('Mediatypes'),
+          '#options' => $all_mt,
+          '#default_value' => $config->get('mediatypes', array()),
+          '#description' => t('Select mediatypes which should be checked for iptc & exif data.'),
+        );
+      } else {
+        $form['mediatypes'] = array(
+          '#type' => 'hidden',
+          '#default_value' => $config->get('mediatypes', array())
+        );
+      }
     }
 
 
@@ -153,7 +175,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#title' => t('Vocabulary'),
       '#options' => $all_vocs,
       '#default_value' => $config->get('vocabulary', array()),
-      '#description' => t('Select vocabulary which should be used for iptc & exif data.If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>'),
+      '#description' => t('Select vocabulary which should be used for iptc & exif data.').t('If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.').t('To have a sample of metadata content, take a look at <a href="/admin/config/media/exif/sample">the sample page</a>.'),
     );
     //TODO : Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
     return parent::buildForm($form, $form_state);
@@ -176,11 +198,11 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     $this->config('exif.settings')
-      ->set('nodetypes', $form_state->getValue('nodetypes'))
-      ->set('mediatypes', $form_state->getValue('mediatypes'))
-      ->set('update_metadata', $form_state->getValue('update_metadata'))
-      ->set('write_empty_values', $form_state->getValue('write_empty_values'))
-      ->set('vocabulary', $form_state->getValue('vocabulary'))
+      ->set('nodetypes', $form_state->getValue('nodetypes',array()))
+      ->set('mediatypes', $form_state->getValue('mediatypes',array()))
+      ->set('update_metadata', $form_state->getValue('update_metadata',TRUE))
+      ->set('write_empty_values', $form_state->getValue('write_empty_values',FALSE))
+      ->set('vocabulary', $form_state->getValue('vocabulary',"0"))
       ->set('granularity', $form_state->getValue('granularity'))
       ->set('date_format_exif', $form_state->getValue('date_format_exif'))
       ->set('extraction_solution', $form_state->getValue('extraction_solution'))

@@ -2,14 +2,25 @@
   background-color: gray !important;
 }
 
-img.sample-image {
-  height: 70px;
-  float: right;
-  margin: 0 0 15px 15px;
-  vertical-align: sub;
+main.page-content {
+  font-size:0.9em;
 }
 
-h3.sample-image {
-  margin-top: 40px;
-  float: left;
+a.button-small {
+  font-weight: normal;
+  font-size:0.9em;
+  margin-top: 10px;
+  margin-bottom: 20px;
 }
+
+
+dt {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+ul.vocabulary-structure {
+  font-size:0.9em;
+}
+
+

@@ -21,6 +21,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExifSettingsController extends ControllerBase {
 
@@ -32,7 +33,13 @@ class ExifSettingsController extends ControllerBase {
   public function showGuide() {
     return [
       '#message' => "",
-      '#theme' => 'exif_helper_page'
+      '#taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/',
+      '#theme' => 'exif_helper_page',
+      '#attached' => array(
+        'library' =>  array(
+          'exif/exif-admin'
+        ),
+      ),
     ];
   }
 
@@ -236,7 +243,7 @@ class ExifSettingsController extends ControllerBase {
       $message = $this->t('The node type photography has been fully created');
 
     } catch (FieldException $fe) {
-      $message = $this->t('An unexpected error was thrown during creation : '+$fe->getMessage());
+      $message = $this->t('An unexpected error was thrown during creation : ')+$fe->getMessage();
     }
     drupal_set_message($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
@@ -244,7 +251,76 @@ class ExifSettingsController extends ControllerBase {
     exit();
   }
 
+  /**
+   * Button to create an Photography node type with default exif field (title,model,keywords) and default behavior but 'promoted to front'
+   * @return Response
+   */
+  public function createPhotographyMediaType() {
+    $typeName = 'Photography';
+    $machinename = strtolower($typeName);
 
+    try {
+
+      if (Drupal::moduleHandler()->moduleExists("media_entity")) {
+        $media_type = Drupal\media_entity\Entity\MediaBundle::load($machinename);
+        if (!$media_type) {
+          $media_type = Drupal\media_entity\Entity\MediaBundle::create(
+            [
+              'name' => $typeName,
+              'type' => $machinename,
+              'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
+            ]);
+          $media_type->save();
+        }
+
+        //add default display
+        $values = array(
+          'targetEntityType' => 'media',
+          'bundle' => $machinename,
+          'mode' => 'default',
+          'status' => TRUE
+        );
+        $this->entityTypeManager()
+          ->getStorage('entity_view_display')
+          ->create($values);
+
+        //add default form display
+        $values = array(
+          'targetEntityType' => 'media',
+          'bundle' => $machinename,
+          'mode' => 'default',
+          'status' => TRUE,
+        );
+        $this->entityTypeManager()
+          ->getStorage('entity_form_display')
+          ->create($values);
+
+        //$this->configureEntityFormDisplay($fieldName);
+        //$this->configureEntityViewDisplay($fieldName);
+
+        //then add fields
+        //add photo field of type image_field
+        $this->addFieldToContentType($media_type, 'Photo', 'image', 'image', 'exif_readonly');
+        $this->addFieldToContentType($media_type, 'Model', 'exif_model', 'text', 'exif_readonly');
+        $widget_settings = [
+          'image_field' => 'field_image',
+          'exif_field' => 'naming_convention'
+        ];
+        $this->addFieldToContentType($media_type, 'Creation date', 'exif_filedatetime', 'datetime', 'exif_readonly', $widget_settings);
+        $this->addReferenceToContentType($media_type, 'Photographer', 'exif_author', 'taxonomy_term','taxonomy', 'exif_readonly', $widget_settings);
+
+        $message = $this->t('The media type photography has been fully created');
+      } else {
+        $message = 'nothing done. Media modules not present.';
+      }
+    } catch (FieldException $fe) {
+      $message = $this->t('An unexpected error was thrown during creation : ')+$fe->getMessage();
+    }
+    drupal_set_message($message);
+    $response = new RedirectResponse('/admin/config/media/exif/helper');
+    $response->send();
+    exit();
+  }
 
   /**
    *  var $field = array(
@@ -296,32 +372,42 @@ class ExifSettingsController extends ControllerBase {
    */
 
 
-  /**
-   * Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
-   */
-  public function setupImageMediaType() {
-    $message = 'nothing done.';
-    drupal_set_message($message);
-    $response = new RedirectResponse('/admin/config/media/exif/helper');
-    $response->send();
-    exit();
+  function sanitize_value($exif_value) {
+    if (!Drupal\Component\Utility\Unicode::validateUtf8($exif_value)) {
+      $exif_value = Drupal\Component\Utility\Html::escape(utf8_encode($exif_value));
+    }
+    return $exif_value;
   }
 
-
   public function showSample() {
-    $twig = $this->container->get('twig');
-    $twigFilePath = drupal_get_path('module', 'exif') . '/templates/exif_sample.html.twig';
     $sampleImageFilePath = drupal_get_path('module', 'exif') . '/sample.jpg';
-    $template = $this->twig->loadTemplate($twigFilePath);
+    $exif = Drupal\exif\ExifFactory::getExifInterface();
+    $fullmetadata = $exif->readMetadataTags($sampleImageFilePath);
+    $html = '<table class="metadata-table"><tbody>';
+    foreach ($fullmetadata as $currentSection => $currentValues) {
+      $html .= '<tr class="metadata-section"><td colspan="2">'.$currentSection.'</td></tr>';
+      foreach ($currentValues as $currentKey => $currentValue) {
+        $exif_value = $this->sanitize_value($currentValue);
+        $html .= '<tr class="metadata-row '.$currentKey.'"><td class="metadata-key">'.$currentKey.'</td><td class="metadata-value">'.$exif_value.'</td></tr>';
+      }
+    }
+    $html .= '</tbody><tfoot></tfoot></table>';
+    return [
+      '#metadata' => $html,
+      '#image_path' => '/'.$sampleImageFilePath,
+      '#taxo' => '',//url('admin/structure/taxonomy'),
+      '#permissionLink' => '',//url('admin/config/people/permissions'),
+      '#taxonomyFragment' => '', //module - taxonomy
+      '#theme' => 'exif_sample',
+      '#attached' => array(
+        'library' =>  array(
+          'exif/exif-sample'
+        ),
+      ),
+    ];
 
-    $markup = $template->render(
-      array(
-        'imagePath' => $sampleImageFilePath,
-        'taxonomyLink' => url('admin/structure/taxonomy'),
-        'permissionLink' => url('admin/config/people/permissions'),
-        'taxonomyFragment' => module - taxonomy
-      ));
-    return new Response($markup);
+
+
   }
 
 }

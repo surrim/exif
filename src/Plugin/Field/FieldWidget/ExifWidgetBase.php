@@ -27,7 +27,7 @@ abstract class ExifWidgetBase extends WidgetBase {
    */
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
-    if ($form['#entity_type'] == "node") {
+    if ($form['#entity_type'] == "node" || $form['#entity_type'] == "media") {
       $image_fields = $this->retrieveImageFieldFromBundle($form['#entity_type'], $form['#bundle']);
       $default_image_value = $this->retrieveImageFieldDefaultValue($element, $image_fields);
       $element['image_field'] = array(
@@ -64,7 +64,9 @@ abstract class ExifWidgetBase extends WidgetBase {
     if (isset($image_field)) {
       $bundle_name = $this->fieldDefinition->getTargetBundle();
       $entity_type = $this->fieldDefinition->getTargetEntityTypeId();
-      $image_field_config = \Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle_name)[$image_field];
+      $image_field_config = Drupal::getContainer()
+        ->get('entity_field.manager')
+        ->getFieldDefinitions($entity_type, $bundle_name)[$image_field];
       if ($image_field_config instanceof FieldConfig) {
         if ($image_field_config->getType() == "image" || $image_field_config->getType() == "media") {
           $label = t("'@image_linked_label' (id: @image_linked_id)",array('@image_linked_label' => $image_field_config->getLabel(), '@image_linked_id' => $image_field));
@@ -89,7 +91,6 @@ abstract class ExifWidgetBase extends WidgetBase {
    */
   public static function defaultSettings() {
     return array(
-      'exif_update' => TRUE,
       'image_field' => NULL
     ) + parent::defaultSettings();
   }
@@ -97,11 +98,12 @@ abstract class ExifWidgetBase extends WidgetBase {
 
 
 
-  function validateImageField($element, FormStateInterface $form_state, $form) {
+  public static function validateImageField($element, FormStateInterface $form_state, $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!$elementSettings) {
       //$form_state->setErrorByName('image_field', t('you must choose at least one image field to retrieve metadata.'));
-      $field_storage_definitions = Drupal::entityManager()
+      $field_storage_definitions = Drupal::getContainer()
+        ->get('entity_field.manager')
         ->getFieldStorageDefinitions($form['#entity_type']);
       $field_storage = $field_storage_definitions[$element['#field_name']];
       if ($field_storage) {
@@ -117,12 +119,18 @@ abstract class ExifWidgetBase extends WidgetBase {
 
   /**
    * calculate default value for settings form (more precisely image_field setting) of widget.
+   * Look for the first image field found.
    * @param $widget
    * @param $image_fields
    */
   function retrieveImageFieldDefaultValue($widget, $image_fields) {
-    $result = $widget['settings']['image_field'];
+    if (array_key_exists('settings',$widget) && array_key_exists('image_field',$widget['settings'])) {
+      $result = $widget['settings']['image_field'];
+    } else {
+      $result = NULL;
+    }
     if (empty($result)) {
+      //Look for the first image field found.
       $temp = array_keys($image_fields);
       if (!empty($temp) && is_array($temp)) {
         $result = $temp[0];
@@ -132,7 +140,8 @@ abstract class ExifWidgetBase extends WidgetBase {
   }
 
   function retrieveImageFieldFromBundle($entity_type, $bundle_name) {
-    $fields_of_bundle = \Drupal::entityManager()
+    $fields_of_bundle = Drupal::getContainer()
+      ->get('entity_field.manager')
       ->getFieldDefinitions($entity_type, $bundle_name);
     $result = array();
     foreach ($fields_of_bundle as $key => $value) {
