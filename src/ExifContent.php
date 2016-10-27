@@ -120,6 +120,11 @@ class ExifContent {
         $new_types[] = $type;
       }
     }
+    foreach ($config->get('filetypes', array()) as $type) {
+      if ($type != "0") {
+        $new_types[] = $type;
+      }
+    }
     return $new_types;
   }
 
@@ -138,20 +143,22 @@ class ExifContent {
           ->load($entityType. '.' . $entity->bundle() . '.default')
           ->getComponent($fieldName)['settings'];
         $exifField = NULL;
-        if (array_key_exists('exif_field',$settings)) {
-          $exifField = $settings['exif_field'];
-        }
-        $exifFieldSeparator = NULL;
-        if (array_key_exists('exif_field_separator',$settings)) {
-          $exifFieldSeparator = $settings['exif_field_separator'];
-        }
-        $imageField = NULL;
-        if (array_key_exists('image_field',$settings)) {
-          $imageField = $settings['image_field'];
-        }
         $mediaField = NULL;
-        if (array_key_exists('media_generic',$settings)) {
-          $mediaField = $settings['media_generic'];
+        $imageField = NULL;
+        $exifFieldSeparator = NULL;
+        if ($settings!=NULL) {
+          if (array_key_exists('exif_field',$settings)) {
+            $exifField = $settings['exif_field'];
+          }
+          if (array_key_exists('exif_field_separator',$settings)) {
+            $exifFieldSeparator = $settings['exif_field_separator'];
+          }
+          if (array_key_exists('image_field',$settings)) {
+            $imageField = $settings['image_field'];
+          }
+          if (array_key_exists('media_generic',$settings)) {
+            $mediaField = $settings['media_generic'];
+          }
         }
         if (isset($exifField) && ((isset($imageField)) || (isset($mediaField)))) {
           $element = array();

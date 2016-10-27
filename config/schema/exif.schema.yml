@@ -18,6 +18,11 @@ exif.settings:
       label: 'node entity types to check'
       sequence:
         type: string
+    filetypes:
+      type: sequence
+      label: 'file entity types to check'
+      sequence:
+        type: string
     update_metadata:
       type: boolean
       label: 'update metadata'

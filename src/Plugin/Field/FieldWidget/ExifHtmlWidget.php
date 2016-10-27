@@ -42,8 +42,7 @@ class ExifHtmlWidget extends ExifWidgetBase {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element += array(
       '#type' => '',
-      '#value' => '',
-      '#process' => array(array(get_class($this), 'process')),
+      '#value' => ''
     );
     return $element;
   }

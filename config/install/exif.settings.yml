@@ -7,4 +7,5 @@ exiftool_location: "exiftool"
 vocabulary: "0"
 mediatypes: []
 nodetypes: []
+filetypes: []
 

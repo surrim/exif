@@ -18,6 +18,8 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\taxonomy\Entity\Vocabulary;
 
+use Drupal\file_entity\Entity\FileType;
+
 
 class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInterface {
   /**
@@ -88,30 +90,25 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
     //the old way (still in use so keep it)
     if (Drupal::moduleHandler()->moduleExists("file_entity")) {
       $all_mt = array();
-      // Setup media types
-      if (function_exists('file_type_get_enabled_types')) {
-        $types = file_type_get_enabled_types();
-        foreach ($types as $key) {
-          $all_mt[$key->type] = $key->label;
-        }
+      $all_filetypes = FileType::loadEnabled();
+      // Setup file types
+      foreach ($all_filetypes as $item) {
+          $all_mt[$item->id()] = $item->label();
       }
-      else {
-        if (function_exists('media_type_get_types')) {
-          $types = media_type_get_types();
-          foreach ($types as $key) {
-            $all_mt[$key->name] = $key->name;
-          }
-        }
-      }
-      $form['mediatypes'] = array(
+      $form['filetypes'] = array(
         '#type' => 'checkboxes',
-        '#title' => t('Mediatypes'),
+        '#title' => t('Filetypes'),
         '#options' => $all_mt,
-        '#default_value' => $config->get('mediatypes', array()),
-        '#description' => t('Select mediatypes which should be checked for itpc & exif data.'),
+        '#default_value' => $config->get('filetypes', array()),
+        '#description' => t('Select filetypes which should be checked for itpc & exif data.'),
       );
     } else {
-      if (Drupal::moduleHandler()->moduleExists("media_entity")) {
+      $form['filetypes'] = array(
+        '#type' => 'hidden',
+        '#default_value' => $config->get('filetypes', array())
+      );
+    }
+    if (Drupal::moduleHandler()->moduleExists("media_entity")) {
         $all_mediatypes = $this->entityTypeManager->getStorage('media_bundle')->loadMultiple();
         $all_mt = array();
         //$all_nt[0] = 'None';
@@ -125,12 +122,11 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
           '#default_value' => $config->get('mediatypes', array()),
           '#description' => t('Select mediatypes which should be checked for iptc & exif data.'),
         );
-      } else {
-        $form['mediatypes'] = array(
-          '#type' => 'hidden',
-          '#default_value' => $config->get('mediatypes', array())
-        );
-      }
+    } else {
+      $form['mediatypes'] = array(
+        '#type' => 'hidden',
+        '#default_value' => $config->get('mediatypes', array())
+      );
     }
 
 
@@ -199,6 +195,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
 
     $this->config('exif.settings')
       ->set('nodetypes', $form_state->getValue('nodetypes',array()))
+      ->set('filetypes', $form_state->getValue('filetypes',array()))
       ->set('mediatypes', $form_state->getValue('mediatypes',array()))
       ->set('update_metadata', $form_state->getValue('update_metadata',TRUE))
       ->set('write_empty_values', $form_state->getValue('write_empty_values',FALSE))

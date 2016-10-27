@@ -24,7 +24,10 @@ use Drupal\field\Entity\FieldConfig;
  *   description = @Translation("field content is calculated from image field in the same content type (field are hidden from forms)"),
  *   multiple_values = true,
  *   field_types = {
+ *     "string",
+ *     "string_long",
  *     "text",
+ *     "text_with_summary",
  *     "text_long",
  *     "entity_reference",
  *     "date",
