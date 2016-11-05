@@ -8,18 +8,14 @@ namespace Drupal\exif\Controller;
 
 use Drupal;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Routing\LocalRedirectResponse;
-use Drupal\node\Entity\Node;
-use Drupal\node\Entity\NodeType;
-use Drupal\node\NodeInterface;
-use Drupal\node\NodeTypeInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -71,7 +67,7 @@ class ExifSettingsController extends ControllerBase {
     // default widget and settings). It stays hidden for other form modes
     // until it is explicitly configured.
     $options = $widget_id ? ['type' => $widget_id] : [];
-    entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
+    $this->entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
       ->setComponent($field_name, $options)
       ->save();
   }
@@ -81,77 +77,134 @@ class ExifSettingsController extends ControllerBase {
     // default formatter and settings). It stays hidden for other view
     // modes until it is explicitly configured.
     $options = $formatter_id ? ['type' => $formatter_id] : [];
-    entity_get_display($this->entityTypeId, $this->bundle, 'default')
+    $this->entity_get_display($this->entityTypeId, $this->bundle, 'default')
       ->setComponent($field_name, $options)
       ->save();
   }
 
-  protected function addFieldToContentType(NodeTypeInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldWidget, $widgetSettings = array(), $settings = array()) {
+  function entity_get_display($entity_type, $bundle, $view_mode) {
+    // Try loading the display from configuration.
+    $display = EntityViewDisplay::load($entity_type . '.' . $bundle . '.' . $view_mode);
+
+    // If not found, create a fresh display object. We do not preemptively create
+    // new entity_view_display configuration entries for each existing entity type
+    // and bundle whenever a new view mode becomes available. Instead,
+    // configuration entries are only created when a display object is explicitly
+    // configured and saved.
+    if (!$display) {
+      $display = EntityViewDisplay::create(array(
+        'targetEntityType' => $entity_type,
+        'bundle' => $bundle,
+        'mode' => $view_mode,
+        'status' => TRUE,
+      ));
+    }
+
+    return $display;
+  }
+
+  function entity_get_form_display($entity_type, $bundle, $form_mode) {
+    // Try loading the entity from configuration.
+    $entity_form_display = EntityFormDisplay::load($entity_type . '.' . $bundle . '.' . $form_mode);
+
+    // If not found, create a fresh entity object. We do not preemptively create
+    // new entity form display configuration entries for each existing entity type
+    // and bundle whenever a new form mode becomes available. Instead,
+    // configuration entries are only created when an entity form display is
+    // explicitly configured and saved.
+    if (!$entity_form_display) {
+      $entity_form_display = EntityFormDisplay::create(array(
+        'targetEntityType' => $entity_type,
+        'bundle' => $bundle,
+        'mode' => $form_mode,
+        'status' => TRUE,
+      ));
+    }
+
+    return $entity_form_display;
+  }
+
+  function get_field_storage_config() {
+    return $this->entityTypeManager()
+      ->getStorage('field_storage_config');
+  }
+
+  function get_field_config() {
+    return $this->entityTypeManager()
+      ->getStorage('field_config');
+  }
+
+  protected function addFieldToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldWidget, $widgetSettings = array(), $settings = array()) {
     $realFieldName = 'field_' . $fieldName;
-    $field_storage = FieldStorageConfig::loadByName('node', $realFieldName);
+    $storage = $this->get_field_storage_config();
+    $field_storage = $storage->load($entity_type . '.' . $realFieldName);
     if (empty($field_storage)) {
       $field_storage_values = [
         'field_name' => $realFieldName,
         'field_label' => $fieldLabel,
-        'entity_type' => 'node',
+        'entity_type' => $entity_type,
         'bundle' => $type->id(),
         'type' => $fieldType,
         'translatable' => FALSE,
       ];
-      $this->entityTypeManager()
-        ->getStorage('field_storage_config')
-        ->create($field_storage_values)
-        ->save();
+      $storage->create($field_storage_values)->save();
     }
-    $this->node_add_extra_field($type, $realFieldName, $fieldLabel, $fieldWidget, $widgetSettings);
+    $fieldSettings =  array('display_summary' => TRUE);
+    $this->entity_add_extra_field($entity_type, $type, $realFieldName, $fieldLabel, $fieldSettings, $fieldWidget, $widgetSettings);
   }
 
-  protected function addReferenceToContentType(NodeTypeInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldTypeBundle, $fieldWidget, $widgetSettings = array(), $settings = array()) {
+  protected function addReferenceToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldTypeBundle, $fieldWidget, $widgetSettings = array(), $settings = array()) {
     $realFieldName = 'field_' . $fieldName;
-    $field_storage = FieldStorageConfig::loadByName('node', $realFieldName);
+    $storage = $this->get_field_storage_config();
+    $field_storage = $storage->load($entity_type . '.' . $realFieldName);
     if (empty($field_storage)) {
       $field_storage_values = array(
         'field_name' => $realFieldName,
         'field_label' => $fieldLabel,
-        'entity_type' => 'node',
+        'entity_type' => $entity_type,
         'bundle' => $type->id(),
         'type' => 'entity_reference',
         'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         'translatable' => FALSE,
         'settings' => array(
-          'target_type' => $fieldType,
-          'handler_settings' => array('target_bundles' => array($fieldTypeBundle)),
+          'target_type' => $fieldType
         )
       );
-      $this->entityTypeManager()
-        ->getStorage('field_storage_config')
-        ->create($field_storage_values)
-        ->save();
+      $temp = $storage->create($field_storage_values);
+      $temp->save();
     }
-    $this->node_add_extra_field($type, $realFieldName, $fieldLabel, $fieldWidget, $widgetSettings);
+    $fieldSettings = array(
+      'handler' => 'default:'.$fieldType,
+      'handler_settings'=> array(
+        'target_bundles' =>  array($fieldTypeBundle => $fieldTypeBundle),
+      ),
+      'sort' => array('field' => '_none'),
+      'auto_create' => FALSE,
+       'auto_create_bundle' => ''
+    );
+    $this->entity_add_extra_field($entity_type, $type, $realFieldName, $fieldLabel, $fieldSettings, $fieldWidget, $widgetSettings);
   }
 
 
-  protected function node_add_extra_field(NodeTypeInterface $type, $name, $fieldLabel, $fieldWidget, $widgetSettings) {
+  protected function entity_add_extra_field($entity_type, EntityInterface $type, $name, $fieldLabel, $fieldSettings, $fieldWidget, $widgetSettings) {
     $machinename = strtolower($name);
     // Add or remove the body field, as needed.
-    $field_storage = FieldStorageConfig::loadByName('node', $machinename);
-    $field = FieldConfig::loadByName('node', $type->id(), $machinename);
+    $storage = $this->get_field_storage_config();
+    $field_storage = $storage->load($entity_type . '.' . $machinename);
+    $field_config = $this->get_field_config();
+    $field = $field_config->load($entity_type . '.' . $type->id() . '.' . $machinename);
     if (empty($field)) {
-      $field = entity_create('field_config', array(
+      $field = $field_config->create(array(
         'field_storage' => $field_storage,
         'bundle' => $type->id(),
         'label' => $fieldLabel,
-        'settings' => array('display_summary' => TRUE),
+        'settings' => $fieldSettings,
       ));
       $field->save();
     }
 
     // Assign widget settings for the 'default' form mode.
-    $entityFormDisplay = Drupal::entityManager()
-      ->getStorage('entity_form_display')
-      ->load('node.' . $type->id() . '.' . 'default');
-    $entityFormDisplay
+    $this->entity_get_form_display($entity_type, $type->id(), 'default')
       ->setComponent($machinename, array(
         'type' => $fieldWidget,
         'settings' => $widgetSettings
@@ -159,7 +212,7 @@ class ExifSettingsController extends ControllerBase {
       ->save();
 
     // Assign display settings for the 'default' and 'teaser' view modes.
-    entity_get_display('node', $type->id(), 'default')
+    $this->entity_get_display($entity_type, $type->id(), 'default')
       ->setComponent($machinename, array(
         'label' => 'hidden',
         'type' => 'text_default',
@@ -168,9 +221,9 @@ class ExifSettingsController extends ControllerBase {
 
     // The teaser view mode is created by the Standard profile and therefore
     // might not exist.
-    $view_modes = Drupal::entityManager()->getViewModes('node');
+    $view_modes = Drupal::entityManager()->getViewModes($entity_type);
     if (isset($view_modes['teaser'])) {
-      entity_get_display('node', $type->id(), 'teaser')
+      $this->entity_get_display($entity_type, $type->id(), 'teaser')
         ->setComponent($machinename, array(
           'label' => 'hidden',
           'type' => 'text_summary_or_trimmed',
@@ -187,26 +240,27 @@ class ExifSettingsController extends ControllerBase {
    * @return Response
    */
   public function createPhotographyNodeType() {
-    $nodeTypeName = 'Photography';
-    $machinename = strtolower($nodeTypeName);
-
+    $typeName = 'Photography';
+    $entity_type = 'node';
+    $machinename = strtolower($typeName);
     try {
-
-      $node_type = NodeType::load($machinename);
-      if (!$node_type) {
-        $node_type = NodeType::create(
+      $storage = $this->entityTypeManager()->getStorage('node_type');
+      $type_definition = $storage->load($machinename);
+      if (!$type_definition) {
+        $type_definition = $storage->create(
           [
-            'name' => $nodeTypeName,
+            'name' => $typeName,
             'type' => $machinename,
             'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
           ]);
-        $node_type->save();
-        node_add_body_field($node_type);
+        $type_definition->save();
+        //specific to node type interface
+        //node_add_body_field( $type_definition );
       }
 
       //add default display
       $values = array(
-        'targetEntityType' => 'node',
+        'targetEntityType' => $entity_type,
         'bundle' => $machinename,
         'mode' => 'default',
         'status' => TRUE
@@ -217,7 +271,7 @@ class ExifSettingsController extends ControllerBase {
 
       //add default form display
       $values = array(
-        'targetEntityType' => 'node',
+        'targetEntityType' => $entity_type,
         'bundle' => $machinename,
         'mode' => 'default',
         'status' => TRUE,
@@ -230,20 +284,11 @@ class ExifSettingsController extends ControllerBase {
       //$this->configureEntityViewDisplay($fieldName);
 
       //then add fields
-      //add photo field of type image_field
-      $this->addFieldToContentType($node_type, 'Photo', 'image', 'image', 'exif_readonly');
-      $this->addFieldToContentType($node_type, 'Model', 'exif_model', 'text', 'exif_readonly');
-      $widget_settings = [
-        'image_field' => 'field_image',
-        'exif_field' => 'naming_convention'
-      ];
-      $this->addFieldToContentType($node_type, 'Creation date', 'exif_filedatetime', 'datetime', 'exif_readonly', $widget_settings);
-      $this->addReferenceToContentType($node_type, 'Photographer', 'exif_author', 'taxonomy_term','taxonomy', 'exif_readonly', $widget_settings);
-
-      $message = $this->t('The node type photography has been fully created');
+      $this->add_fields($entity_type, $type_definition);
+      $message = $this->t('The %entitytype type %type has been fully created',array( '%entitytype' => $entity_type, '%type' => $typeName));
 
     } catch (FieldException $fe) {
-      $message = $this->t('An unexpected error was thrown during creation : ')+$fe->getMessage();
+      $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     drupal_set_message($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
@@ -257,25 +302,27 @@ class ExifSettingsController extends ControllerBase {
    */
   public function createPhotographyMediaType() {
     $typeName = 'Photography';
+    $entity_type = 'media';
     $machinename = strtolower($typeName);
 
     try {
 
       if (Drupal::moduleHandler()->moduleExists("media_entity")) {
-        $media_type = Drupal\media_entity\Entity\MediaBundle::load($machinename);
-        if (!$media_type) {
-          $media_type = Drupal\media_entity\Entity\MediaBundle::create(
+        $storage = $this->entityTypeManager()->getStorage($entity_type);
+        $type_definition = $storage->load($machinename);
+        if (!$type_definition) {
+          $type_definition = $storage->create(
             [
               'name' => $typeName,
               'type' => $machinename,
               'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
             ]);
-          $media_type->save();
+          $type_definition->save();
         }
 
         //add default display
         $values = array(
-          'targetEntityType' => 'media',
+          'targetEntityType' => $entity_type,
           'bundle' => $machinename,
           'mode' => 'default',
           'status' => TRUE
@@ -286,7 +333,7 @@ class ExifSettingsController extends ControllerBase {
 
         //add default form display
         $values = array(
-          'targetEntityType' => 'media',
+          'targetEntityType' => $entity_type,
           'bundle' => $machinename,
           'mode' => 'default',
           'status' => TRUE,
@@ -299,77 +346,19 @@ class ExifSettingsController extends ControllerBase {
         //$this->configureEntityViewDisplay($fieldName);
 
         //then add fields
-        //add photo field of type image_field
-        $this->addFieldToContentType($media_type, 'Photo', 'image', 'image', 'exif_readonly');
-        $this->addFieldToContentType($media_type, 'Model', 'exif_model', 'text', 'exif_readonly');
-        $widget_settings = [
-          'image_field' => 'field_image',
-          'exif_field' => 'naming_convention'
-        ];
-        $this->addFieldToContentType($media_type, 'Creation date', 'exif_filedatetime', 'datetime', 'exif_readonly', $widget_settings);
-        $this->addReferenceToContentType($media_type, 'Photographer', 'exif_author', 'taxonomy_term','taxonomy', 'exif_readonly', $widget_settings);
-
-        $message = $this->t('The media type photography has been fully created');
+        $this->add_fields($entity_type,$type_definition);
+        $message = $this->t('The %entitytype type %type has been fully created',array( '%entitytype' => $entity_type, '%type' => $typeName));
       } else {
-        $message = 'nothing done. Media modules not present.';
+        $message = 'Nothing done. Media modules not present.';
       }
     } catch (FieldException $fe) {
-      $message = $this->t('An unexpected error was thrown during creation : ')+$fe->getMessage();
+      $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     drupal_set_message($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
     $response->send();
     exit();
   }
-
-  /**
-   *  var $field = array(
-   * 'name' => 'myfield',
-   * 'entity_type' => 'myentitytype',
-   * 'type' => 'text_long',
-   * 'module' => 'text',
-   * 'settings' => array(),
-   * 'cardinality' => 1,
-   * 'locked' => FALSE,
-   * 'indexes' => array(),
-   * );
-   * //entity_create('field_entity', $field)->save();
-   * $this->entityTypeManager()->getStorage('field_entity')->create($field)->save();
-   *
-   * var $instance = array(
-   * 'field_name' => 'myfield',
-   * 'entity_type' => 'myentitytype',
-   * 'bundle' => 'myentitytype',
-   * 'label' => 'Field title',
-   * 'description' => t('Field description.'),
-   * 'required' => TRUE,
-   * 'default_value' => array(),
-   * 'settings' => array(
-   * 'text_processing' => '0'
-   * ),
-   * );
-   * //entity_create('field_instance', $instance)->save();
-   * $this->entityTypeManager()->getStorage('field_instance')->create($instance)->save();
-   *
-   * var $values = array(
-   * 'targetEntityType' => 'myentitytype',
-   * 'bundle' => 'myentitytype',
-   * 'mode' => 'default',
-   * 'status' => TRUE,
-   * );
-   *
-   * $this->entityTypeManager()->getStorage('entity_form_display')->create($values)->save();
-   *
-   * var entity_form_display = getStorage('entity_form_display')->load($entity_type . '.' . $bundle . '.' . $form_mode);
-   *
-   * entity_form_display->setComponent('myfield', array(
-   * 'type' => 'text_long',
-   * 'settings' => array(
-   * 'text_processing' => '0'
-   * ),
-   * 'weight' => 5,
-   * ))->save();
-   */
 
 
   function sanitize_value($exif_value) {
@@ -405,7 +394,44 @@ class ExifSettingsController extends ControllerBase {
         ),
       ),
     ];
+  }
 
+  public function add_fields($entity_type, EntityInterface $type_definition) {
+    //first, add image field
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Photo', 'image', 'image', 'exif_readonly');
+    $widget_settings = [
+      'image_field' => 'field_image',
+      'exif_field' => 'naming_convention'
+    ];
+
+    //then add all extra fields (metadata)
+    //date
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Creation date', 'exif_datetime', 'datetime', 'exif_readonly', $widget_settings);
+    //text
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Photo Comment', 'exif_comments', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Photo Description', 'exif_imagedescription', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Photo Title', 'exif_title', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Make', 'exif_make', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Aperture', 'exif_aperturefnumber', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Exposure', 'exif_exposuretime', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'ISO', 'exif_isospeedratings', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Focal', 'exif_focallength', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Flash', 'exif_flash', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Exposure Program', 'exif_exposureprogram', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'Exposure Mode', 'exif_exposuremode', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'White Balance Mode', 'exif_whitebalance', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'scene Mode', 'exif_scenecapturetype', 'text', 'exif_readonly', $widget_settings);
+    $this->addFieldToEntityType($entity_type, $type_definition, 'orientation', 'exif_orientation', 'text', 'exif_readonly', $widget_settings);
+    //terms
+    $this->addReferenceToEntityType($entity_type, $type_definition, 'Photographer', 'exif_author', 'taxonomy_term','photographs_metadata', 'exif_readonly', $widget_settings);
+    $this->addReferenceToEntityType($entity_type, $type_definition, 'Camera', 'exif_model', 'taxonomy_term','photographs_metadata', 'exif_readonly', $widget_settings);
+    $this->addReferenceToEntityType($entity_type, $type_definition, 'ISO', 'exif_isospeedratings', 'taxonomy_term','photographs_metadata', 'exif_readonly', $widget_settings);
+    $widget_settings_for_tags =  [
+      'image_field' => 'field_image',
+      'exif_field' => 'naming_convention' ,
+      'exif_field_separator' => ';',
+    ];
+    $this->addReferenceToEntityType($entity_type, $type_definition, 'Tags', 'exif_keywords', 'taxonomy_term','photographs_metadata', 'exif_readonly', $widget_settings_for_tags);
 
 
   }

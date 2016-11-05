@@ -395,7 +395,6 @@ class ExifContent {
    * @param $exif_value string the exif value to update
    */
   function handle_taxonomy_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_value) {
-    //TODO : check if the vocabulary is the same as the field
     //look for the term
     if (!Unicode::validateUtf8($exif_value)) {
       $exif_value = Html::escape(utf8_encode($exif_value));

@@ -1,7 +1,7 @@
 exif.sample:
   path: '/admin/config/media/exif/sample'
   defaults:
-    _title: "Exif module sample page"
+    _title: "Image Metadata sample page"
     _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::showSample"
   requirements:
     _permission: "access content"
@@ -9,7 +9,7 @@ exif.sample:
 exif.config:
   path: '/admin/config/media/exif'
   defaults:
-    _title: 'Exif module settings'
+    _title: 'Image metadata'
     _form: '\Drupal\exif\Controller\ExifSettingsForm'
   requirements:
     _permission: 'access content'
