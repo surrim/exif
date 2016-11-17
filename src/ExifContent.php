@@ -8,27 +8,43 @@
 
 namespace Drupal\exif;
 
-
 use Drupal;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
 use Drupal\node\NodeInterface;
 use Drupal\taxonomy\Entity\Term;
-use Drupal\taxonomy\Entity\Vocabulary;
+
 
 class ExifContent {
 
+  function check_title($entityType, FieldableEntityInterface $entity, $update = TRUE) {
+    $bundles_to_check = $this->get_bundle_for_exif_data();
+    if (in_array($entity->bundle(), $bundles_to_check)) {
+      $exif = ExifFactory::getExifInterface();
+      $ar_exif_fields = $this->filter_fields_on_settings($entityType, $entity);
+      $ar_exif_fields = $exif->getMetadataFields($ar_exif_fields);
+      foreach ($ar_exif_fields as $drupal_field => $metadata_field_descriptor) {
+        $field_name = $drupal_field;
+        if ($field_name == 'title') {
+          $field = $entity->get($field_name);
+          if ($field->isEmpty()) {
+            $field->appendItem("EXIF_FILLED");
+          }
+          break;
+        }
+      }
+    }
+  }
   /**
    * Main entrypoint of the module.
    *
@@ -85,7 +101,11 @@ class ExifContent {
                     }
                   }
                   else {
-                    $values[] = $value;
+                    if (is_array($value)) {
+                      $values = array_merge($values, $value);
+                    } else {
+                      $values[] = $value;
+                    }
                   }
                 }
               }
@@ -137,7 +157,7 @@ class ExifContent {
   function filter_fields_on_settings($entityType, FieldableEntityInterface $entity) {
     $result = array();
     foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
-      if ($fieldDefinition instanceof FieldConfigInterface) {
+      if ($fieldDefinition instanceof FieldConfigInterface || ($fieldDefinition instanceof BaseFieldDefinition and $fieldName === 'title')) {
         $settings = \Drupal::entityTypeManager()
           ->getStorage('entity_form_display')
           ->load($entityType. '.' . $entity->bundle() . '.default')
@@ -299,7 +319,7 @@ class ExifContent {
   function handle_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_value) {
     $value = $this->sanitize_value($exif_value);
     $field_typename = $field->getFieldDefinition()->getType();
-    if ($field_typename == 'text') {
+    if ($field_typename == 'text' || $field_typename == 'string') {
       $this->handle_text_field($index, $field, $exif_section, $exif_name, $value);
     }
     else {
