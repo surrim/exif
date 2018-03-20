@@ -95,9 +95,13 @@ class ExifContent {
                 ) {
                   $value = $metadata_image_fields[$section][$key];
                   if (is_string($value) && isset($metadata_field_descriptor['metadata_field_separator'])) {
-                    $subValues = explode($$this->metadata_field_descriptor['metadata_field_separator'], $value);
-                    foreach ($subValues as $index => $subValue) {
-                      $values[] = $subValue;
+                    if (is_string($metadata_field_descriptor['metadata_field_separator'])) {
+                      $subValues = explode($metadata_field_descriptor['metadata_field_separator'], $value);
+                      foreach ($subValues as $index => $subValue) {
+                        $values[] = $subValue;
+                      }
+                    } else {
+                      $values[] = $value;
                     }
                   }
                   else {
