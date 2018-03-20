@@ -126,13 +126,14 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => t('Select nodetypes which should be checked for iptc & exif data.'),
     );
 
-    $form['file'] = array(
-      '#type' => 'details',
-      '#title' => t('File types'),
-      '#group' => 'exif',
-    );
     //the old way (still in use so keep it)
     if (Drupal::moduleHandler()->moduleExists("file_entity")) {
+      $form['file'] = array(
+        '#type' => 'details',
+        '#title' => t('File types'),
+        '#group' => 'exif',
+      );
+
       $all_mt = array();
       $all_filetypes = FileType::loadEnabled();
       // Setup file types
@@ -149,7 +150,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
     } else {
       $form['file']['filetypes'] = array(
         '#type' => 'hidden',
-        '#default_value' => $config->get('filetypes', array())
+        '#value' => array(),
       );
     }
 
