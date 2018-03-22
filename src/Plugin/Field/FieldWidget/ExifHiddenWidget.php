@@ -50,7 +50,7 @@ class ExifHiddenWidget extends ExifFieldWidgetBase {
     return $element;
   }
 
-  function process($element, FormStateInterface $form_state, $form) {
+  public static function process($element, FormStateInterface $form_state, $form) {
 
     $element['tid'] = array(
       '#type' => 'hidden',
