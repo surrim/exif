@@ -323,7 +323,7 @@ class ExifContent {
   function handle_field($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_value) {
     $value = $this->sanitize_value($exif_value);
     $field_typename = $field->getFieldDefinition()->getType();
-    if ($field_typename == 'text' || $field_typename == 'string') {
+    if (in_array($field_typename, ['text', 'text_long', 'text_with_summary', 'string', 'string_long'])) {
       $this->handle_text_field($index, $field, $exif_section, $exif_name, $value);
     }
     else {
