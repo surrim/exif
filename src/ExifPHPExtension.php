@@ -330,7 +330,7 @@ Class ExifPHPExtension implements ExifInterface {
     }
     $exif = array();
     try {
-      $exif = exif_read_data($file, 0, $enable_sections);
+      $exif = @exif_read_data($file, 0, $enable_sections);
     } catch (\Exception $e) {
       // Logs a notice
       Drupal::logger('exif')->warning(t("Error while reading EXIF tags from image."), $e);
