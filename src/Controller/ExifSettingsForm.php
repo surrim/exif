@@ -246,10 +246,15 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
+    foreach (['nodetypes', 'filetypes', 'mediatypes'] as $entity_type) {
+      $value = $form_state->getValue($entity_type);
+      if (empty($value)) {
+        $value = array();
+      }
+      $this->config('exif.settings')->set($entity_type, $value);
+    }
+
     $this->config('exif.settings')
-      ->set('nodetypes', $form_state->getValue('nodetypes',array()))
-      ->set('filetypes', $form_state->getValue('filetypes',array()))
-      ->set('mediatypes', $form_state->getValue('mediatypes',array()))
       ->set('update_metadata', $form_state->getValue('update_metadata',TRUE))
       ->set('write_empty_values', $form_state->getValue('write_empty_values',FALSE))
       ->set('vocabulary', $form_state->getValue('vocabulary',"0"))
