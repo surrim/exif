@@ -8,6 +8,7 @@ namespace Drupal\exif\Controller;
 
 use Drupal;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
@@ -16,11 +17,37 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExifSettingsController extends ControllerBase {
 
+  /**
+   * The entity display repository.
+   *
+   * @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface
+   */
+  protected $entityDisplayRepository;
+
+  /**
+   * Constructs a ExifSettingsController object.
+   *
+   * @param \Drupal\Core\Entity\EntityDisplayRepositoryInterface $entity_display_repository
+   *   The entity display repository.
+   */
+  public function __construct(EntityDisplayRepositoryInterface $entity_display_repository) {
+    $this->entityDisplayRepository = $entity_display_repository;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity_display.repository')
+    );
+  }
 
   /**
    * button to create a vocabulary "photographies'metadata" (exif,iptc and xmp data contains in jpeg file)
@@ -221,7 +248,7 @@ class ExifSettingsController extends ControllerBase {
 
     // The teaser view mode is created by the Standard profile and therefore
     // might not exist.
-    $view_modes = Drupal::entityManager()->getViewModes($entity_type);
+    $view_modes = $this->entityDisplayRepository->getViewModes($entity_type);
     if (isset($view_modes['teaser'])) {
       $this->entity_get_display($entity_type, $type->id(), 'teaser')
         ->setComponent($machinename, array(
