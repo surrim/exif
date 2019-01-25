@@ -262,6 +262,21 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   /**
+   * Helper function to remove empty iptc keywords
+   */
+  function _del_empty_iptc_keywords($data) {
+    if (!in_array('', $data, true)) {
+      return $data;
+    }
+    foreach ($data as $key=>$value) {
+      if (empty($value)) {
+        unset($data[$key]);
+      }
+    }
+    return $data;
+  }
+
+  /**
    * $arOptions liste of options for the method :
    * # enable_sections : (default : TRUE) retrieve also sections.
    * @param string $file
@@ -344,6 +359,10 @@ Class ExifPHPExtension implements ExifInterface {
     return $ending;
   }
 
+  function _checkKeywordString($keyword){
+    return (strpos($keyword[0], ';') !== false) ? explode(';', $keyword[0]) : $keyword;
+  }
+
   /**
    * Read IPTC tags.
    *
@@ -358,6 +377,10 @@ Class ExifPHPExtension implements ExifInterface {
     $iptc = empty($infoImage["APP13"]) ? array() : iptcparse($infoImage["APP13"]);
     $arSmallIPTC = array();
     if (is_array($iptc)) {
+      if (array_key_exists('2#025',$iptc)) {
+        $iptc["2#025"] = $this->_checkKeywordString($iptc["2#025"]);
+        $iptc["2#025"] = $this->_del_empty_iptc_keywords($iptc["2#025"]);
+      }
       foreach ($iptc as $key => $value) {
         if (count($value) == 1) {
           $resultTag = $value[0];
