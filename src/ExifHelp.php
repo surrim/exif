@@ -135,7 +135,7 @@ class ExifHelp {
       $output .= '<p>';
       $output .= '<table><thead><tr><th>key</th><th>value</th></tr></thead><tbody';
       foreach ($rows as $row) {
-        $output .= '<tr class="'.$row['class'].'"><td>'.$row['data'][0].'</td><td>'.$row['data'][1].'</td></tr>';
+        $output .= '<tr class="'.$row['class'][0].'"><td>'.$row['data'][0].'</td><td>'.$row['data'][1].'</td></tr>';
       }
       $output .= "</tbody></table>";
       $output .= '</p>';
