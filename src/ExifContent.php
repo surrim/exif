@@ -27,6 +27,15 @@ use Drupal\taxonomy\Entity\Term;
 
 class ExifContent {
 
+  /**
+   * Store the path to local copies of files store by a remote wrapper.
+   *
+   * Used to clean up temporary file on object destruction.
+   *
+   * @var array
+   */
+  protected $localCopiesOfRemoteFiles = array();
+
   function check_title($entityType, FieldableEntityInterface $entity, $update = TRUE) {
     $bundles_to_check = $this->get_bundle_for_exif_data();
     if (in_array($entity->bundle(), $bundles_to_check)) {
@@ -301,14 +310,45 @@ class ExifContent {
    * @return mixed
    */
   function get_data_from_file_uri(UriItem $file_uri) {
-    //common to media
     $uri = $file_uri->getValue()['value'];
-    $absoluteFilePath = Drupal::getContainer()
-      ->get('file_system')
-      ->realpath($uri);
+
+    /** @var \Drupal\Core\File\FileSystem $file_system */
+    $file_system = \Drupal::service('file_system');
+    $scheme = $file_system->uriScheme($uri);
+
+    // If the file isn't stored locally make a temporary copy to read the
+    // metadata from. We just assume that the temporary files are always local,
+    // hard to figure out how to handle this otherwise.
+    if(!isset(\Drupal::service('stream_wrapper_manager')->getWrappers(Drupal\Core\StreamWrapper\StreamWrapperInterface::LOCAL)[$scheme])){ // Local stream
+      $cache_key = md5($uri);
+      if (empty($this->localCopiesOfRemoteFiles[$cache_key])) {
+        // Create unique local file.
+        if (!($this->localCopiesOfRemoteFiles[$cache_key] = file_unmanaged_copy($uri, 'temporary://exif_' . $cache_key. '_' . basename($uri), FILE_EXISTS_REPLACE))) {
+          // Log error if creating a copy fails - but return an empty array to
+          // avoid type collision.
+          \Drupal::logger('exif')->notice('Unable to create local temporary copy of remote file for exif extraction! File %file.',
+            array(
+              '%file' => $uri,
+            ));
+          return array();
+        }
+      }
+      $uri = $this->localCopiesOfRemoteFiles[$cache_key];
+    }
+    // Read the metadata.
     $exif = ExifFactory::getExifInterface();
-    $fullmetadata = $exif->readMetadataTags($absoluteFilePath);
+    $fullmetadata = $exif->readMetadataTags($file_system->realpath($uri));
     return $fullmetadata;
+  }
+
+  /**
+   * Cleanup of artifacts from processing files.
+   */
+  public function __destruct() {
+    // Get rid of temporary files created for this instance.
+    foreach ($this->localCopiesOfRemoteFiles as $uri) {
+      \Drupal::service('file_system')->unlink($uri);
+    }
   }
 
 
