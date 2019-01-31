@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="PhpProjectServersManager">
-    <servers>
-      <server host="172.17.0.2" id="7052b3f2-14db-4c23-98f0-20a9bdd2adb9" name="docker" />
-    </servers>
-  </component>
-</project>
