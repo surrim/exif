@@ -1,30 +1,31 @@
 <?php
-/**
- * @file ExifHelp.php
- * @Contains \Drupal\exif\ExifHelp
- */
 
 namespace Drupal\exif;
 
-use Drupal\exif\ExifInterface;
-use Drupal\Core\Url;
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Url;
 
+/**
+ * Class ExifHelp provide content for the Help page.
+ *
+ * Gives you an overview over the available tags.
+ *
+ * @package Drupal\exif
+ */
 class ExifHelp {
 
-
   /**
-   * Just some help page. Gives you an overview over the available tags
-   * @return string html
+   * Return the content of the page.
+   *
+   * @return string
+   *   HTML content
    */
-  static function content() {
+  public static function content() {
     global $base_url;
     $filepath = drupal_get_path('module', 'exif') . '/sample.jpg';
-    $imageUrl = $base_url. '/'. drupal_get_path('module', 'exif') . '/sample.jpg';
-    ////$url = \Drupal::url($filepath);
-    //$imageUrl = Url::fromUri($filepath)->toString();
-
-    $taxonomyUrl = Url::fromRoute('entity.taxonomy_vocabulary.collection')->toString();
+    $imageUrl = $base_url . '/' . drupal_get_path('module', 'exif') . '/sample.jpg';
+    $taxonomyUrl = Url::fromRoute('entity.taxonomy_vocabulary.collection')
+      ->toString();
     $permissionUrl = Url::fromRoute('user.admin_permissions')->toString();
 
     $output = '';
@@ -45,10 +46,10 @@ class ExifHelp {
     $output .= '</p>';
     $output .= '<h4 id="create-vocabulary">' . t('Creating vocabularies') . '</h4>';
     $output .= '<p>';
-    $output .= t('Users with sufficient <a href="'.$permissionUrl.'">permissions</a> can create <em>vocabularies</em> through the <a href="'.$taxonomyUrl.'">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion.');
+    $output .= t('Users with sufficient <a href="' . $permissionUrl . '">permissions</a> can create <em>vocabularies</em> through the <a href="' . $taxonomyUrl . '">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion.');
     $output .= t('This module will automatically create in the chosen vocabulary (by default "Photographies\' metadata"), the following structure:');
     $output .= '</p>';
-    $output .= '<ul><li>' . t('<em>vocabulary</em>: Photographies\'metadata') . '</li>';
+    $output .= '<ul><li>' . t("<em>vocabulary</em>: Photographies'metadata") . '</li>';
     $output .= '<ul><li>' . t('<em>term</em>: iptc') . '</li>';
     $output .= '<ul><li>' . t('<em>sub-term</em>: keywords') . '</li>';
     $output .= '<ul><li>' . t('<em>ursub-term</em>: Paris') . '</li>';
@@ -76,7 +77,7 @@ class ExifHelp {
     $output .= '<h4 id="create-fields">' . t('Creating fields to store metadata information') . '</h4>';
     $output .= '<p>';
     $output .= t('To get metadata information of an image, you have to choose on which node type the extraction should be made.');
-    $output .= t('You also have to create fields with specific names using the Field UI.'). '</p>';
+    $output .= t('You also have to create fields with specific names using the Field UI.') . '</p>';
     $output .= t('The type of the field can be :');
     $output .= '<ul><li>' . t('<em>text field</em>: extract information and put it in the text field.') . '</li>';
     $output .= '<li>' . t('<em>date field</em>: extract information and put it in the date field.') . '</li>';
@@ -84,22 +85,21 @@ class ExifHelp {
     $output .= '</ul>';
     $output .= t('Please, if you want to use term reference field, ensure :');
     $output .= '<ul><li>' . t('you choose the autocompletion widget and') . '</li>';
-    $output .= '<li>' . t('the chosen Vocabulary exists')." (".t('see previous section').' <a href="#create-vocabulary">'.t('Creating vocabularies').'</a>)' . '</li>';
+    $output .= '<li>' . t('the chosen Vocabulary exists') . " (" . t('see previous section') . ' <a href="#create-vocabulary">' . t('Creating vocabularies') . '</a>)' . '</li>';
     $output .= '</ul>';
-    $output .= '<b>'.t('Important !').'</b> : '.t('Note for iptc and exif fields that have several values (like field iptc "keywords" as an example), ');
+    $output .= '<b>' . t('Important !') . '</b> : ' . t('Note for iptc and exif fields that have several values (like field iptc "keywords" as an example), ');
     $output .= t('if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).');
     $output .= '</p>';
-    $rows = array();
+    $rows = [];
     $help = '';
-    //TODO drupal_add_css(drupal_get_path('module', 'exif') . '/exif.admin.css');
     $exif = ExifFactory::getExifInterface();
     $fullmetadata = $exif->readMetadataTags($filepath);
-    if (is_array($fullmetadata) && sizeof($fullmetadata)>0) {
+    if (is_array($fullmetadata) && count($fullmetadata) > 0) {
       foreach ($fullmetadata as $section => $section_data) {
-        $rows[] = array(
-          'data' => array($section, $help),
-          'class' => array('tag_type')
-        );
+        $rows[] = [
+          'data' => [$section, $help],
+          'class' => ['tag_type'],
+        ];
         foreach ($section_data as $key => $value) {
           if ($value != NULL && $value != '' && !$exif->startswith($key, 'undefinedtag')) {
             $resultTag = "";
@@ -116,13 +116,13 @@ class ExifHelp {
             else {
               $resultTag = SafeMarkup::checkPlain($value);
             }
-            $rows[] = array(
-              'data' => array(
+            $rows[] = [
+              'data' => [
                 "field_" . $section . "_" . $key,
-                $resultTag
-              ),
-              'class' => array('tag')
-            );
+                $resultTag,
+              ],
+              'class' => ['tag'],
+            ];
           }
         }
       }
@@ -135,11 +135,12 @@ class ExifHelp {
       $output .= '<p>';
       $output .= '<table><thead><tr><th>key</th><th>value</th></tr></thead><tbody';
       foreach ($rows as $row) {
-        $output .= '<tr class="'.$row['class'][0].'"><td>'.$row['data'][0].'</td><td>'.$row['data'][1].'</td></tr>';
+        $output .= '<tr class="' . $row['class'][0] . '"><td>' . $row['data'][0] . '</td><td>' . $row['data'][1] . '</td></tr>';
       }
       $output .= "</tbody></table>";
       $output .= '</p>';
     }
     return $output;
   }
+
 }

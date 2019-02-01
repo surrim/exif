@@ -4,7 +4,7 @@ exif.settings:
   mapping:
     date_format_exif:
       type: string
-      label : 'date format'
+      label: 'date format'
     granularity:
       type: integer
       label: 'granularity'

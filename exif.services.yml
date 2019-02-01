@@ -4,7 +4,7 @@ services:
     class: Drupal\exif\ExifFactory
 
   exif.metadata.reader:
-        class: Drupal\exif\ExifInterface
-        # call a method on the specified service
-        factory: ['@exif.metadata.reader_factory', getExifInterface]
+    class: Drupal\exif\ExifInterface
+    # call a method on the specified service
+    factory: ['@exif.metadata.reader_factory', getExifInterface]
 

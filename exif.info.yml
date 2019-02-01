@@ -1,6 +1,6 @@
 configure: exif.config
 core: 8.x
-dependencies: 
+dependencies:
   - taxonomy
   - image
 description: "Display image metadata (exif and iptc)."

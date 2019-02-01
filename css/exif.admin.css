@@ -3,12 +3,12 @@
 }
 
 main.page-content {
-  font-size:0.9em;
+  font-size: 0.9em;
 }
 
 a.button-small {
   font-weight: normal;
-  font-size:0.9em;
+  font-size: 0.9em;
   margin-top: 10px;
   margin-bottom: 20px;
 }
@@ -20,7 +20,5 @@ dt {
 }
 
 ul.vocabulary-structure {
-  font-size:0.9em;
+  font-size: 0.9em;
 }
-
-

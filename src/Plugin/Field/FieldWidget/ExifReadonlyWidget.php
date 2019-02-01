@@ -1,24 +1,13 @@
 <?php
-/**
- * @file
- * Contains \Drupal\exif\Plugin\Field\FieldWidget\ExifReadonlytWidget.
- */
 
 namespace Drupal\exif\Plugin\Field\FieldWidget;
 
-use Drupal;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Render\ElementInfoManagerInterface;
-use Drupal\exif\ExifFactory;
-use Drupal\field\Entity\FieldConfig;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
 
 /**
  * Plugin implementation of the 'exif_readonly' widget.
@@ -26,9 +15,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @FieldWidget(
  *   id = "exif_readonly",
  *   label = @Translation("metadata from image (viewable in forms)"),
- *   description = @Translation("field content is calculated from image field in the same content type (field are viewable but readonly in forms)"),
- *   multiple_values = true,
- *   field_types = {
+ *   description = @Translation("field content is calculated from image field
+ *   in the same content type (field are viewable but readonly in forms)"),
+ *   multiple_values = true, field_types = {
  *     "string",
  *     "string_long",
  *     "text",
@@ -91,20 +80,20 @@ class ExifReadonlyWidget extends ExifFieldWidgetBase implements ContainerFactory
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $value = $items->getValue();
     $entity_type = $items->getFieldDefinition()->getTargetEntityTypeId();
-    $access = $this->entityTypeManager->getAccessControlHandler($entity_type)->fieldAccess('view', $items->getFieldDefinition());
+    $access = $this->entityTypeManager->getAccessControlHandler($entity_type)
+      ->fieldAccess('view', $items->getFieldDefinition());
     if (!$access) {
-      $element += array(
+      $element += [
         '#type' => '#hidden',
-        '#value' => ''
-      );
+        '#value' => '',
+      ];
     }
-    $element +=  $items->view();
-    $element += array(
+    $element += $items->view();
+    $element += [
       '#value' => $value,
-      '#default_value' => $value
-    );
+      '#default_value' => $value,
+    ];
     return $element;
   }
-}
 
-?>
+}

@@ -1,10 +1,10 @@
 <?php
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\exif\ExifContent;
-use Drupal\Node\NodeInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\exif\ExifContent;
 use Drupal\exif\ExifHelp;
+use Drupal\Node\NodeInterface;
 
 /**
  * @author: Jean-Philippe Hautin
@@ -27,23 +27,23 @@ function exif_help($route_name, RouteMatchInterface $route_match) {
  * Implements hook_theme().
  */
 function exif_theme() {
-  return array(
-    'exif_sample' => array(
+  return [
+    'exif_sample' => [
       'variables' => [
         'taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/',
         'image_path' => NULL,
-        'metadata' => NULL
+        'metadata' => NULL,
       ],
       'template' => 'exif_sample',
-    ),
-    'exif_helper_page' => array(
+    ],
+    'exif_helper_page' => [
       'variables' => [
         'message' => NULL,
-        'taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/'
+        'taxonomy' => 'http://drupal.org/handbook/modules/taxonomy/',
       ],
-      'template' => 'exif_helper_page'
-    )
-  );
+      'template' => 'exif_helper_page',
+    ],
+  ];
 }
 
 
@@ -59,14 +59,18 @@ function exif_entity_presave(EntityInterface $entity) {
   $entityType = '';
   if ($entity instanceof NodeInterface) {
     $entityType = 'node';
-  } else if (Drupal::moduleHandler()->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
-    $entityType = 'media';
+  }
+  else {
+    if (Drupal::moduleHandler()
+        ->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
+      $entityType = 'media';
+    }
   }
   if ($entityType != '') {
     $config = Drupal::configFactory()->get('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
-      $shouldUpdateMetadata = true;
+      $shouldUpdateMetadata = TRUE;
     }
     $inserting = !isset($entity->original);
     if ($inserting || $shouldUpdateMetadata) {
@@ -80,20 +84,24 @@ function exif_entity_create(EntityInterface $entity) {
   $entityType = '';
   if ($entity instanceof NodeInterface) {
     $entityType = 'node';
-  } else if (Drupal::moduleHandler()->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
-    $entityType = 'media';
+  }
+  else {
+    if (Drupal::moduleHandler()
+        ->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
+      $entityType = 'media';
+    }
   }
 
   if ($entityType != '') {
     $config = Drupal::configFactory()->get('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
-      $shouldUpdateMetadata = true;
+      $shouldUpdateMetadata = TRUE;
     }
     $inserting = !isset($entity->original);
     if ($inserting || $shouldUpdateMetadata) {
       $exifContentHandler = new ExifContent();
-      $exifContentHandler->check_title($entityType, $entity);
+      $exifContentHandler->checkTitle($entityType, $entity);
     }
   }
 }

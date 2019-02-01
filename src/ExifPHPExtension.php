@@ -1,31 +1,82 @@
 <?php
-/**
- * @file
- * Contains \Drupal\exif\ExifPHPExtension
- */
 
 namespace Drupal\exif;
 
 use Drupal;
 use Drupal\Component\Utility\Unicode;
 
-Class ExifPHPExtension implements ExifInterface {
+/**
+ * Class ExifPHPExtension Parser implementation base d on PHP Exif extension.
+ *
+ * @package Drupal\exif
+ */
+class ExifPHPExtension implements ExifInterface {
 
   static private $instance = NULL;
 
   /**
-   * We are implementing a singleton pattern
+   * ExifPHPExtension constructor.
    */
   private function __construct() {
   }
 
+  /**
+   * Return the singleton.
+   *
+   * @return \Drupal\exif\ExifPHPExtension
+   *   the singleton implementing the parser
+   */
   public static function getInstance() {
     if (is_null(self::$instance)) {
-      self::$instance = new self;
+      self::$instance = new self();
     }
     return self::$instance;
   }
 
+  /**
+   * Check if the exif php extension is installed.
+   *
+   * @return bool
+   *   true if extension is installed.
+   */
+  public static function checkConfiguration() {
+    return function_exists('exif_read_data') && function_exists('iptcparse');
+  }
+
+  /**
+   * Return drupal fields related to this extension.
+   *
+   * @inheritdoc
+   */
+  public function getMetadataFields(array $arCckFields = []) {
+    $arSections = self::getMetadataSections();
+    foreach ($arCckFields as $drupal_field => $metadata_settings) {
+      $metadata_field = $metadata_settings['metadata_field'];
+      $ar = explode("_", $metadata_field);
+      if (isset($ar[0]) && (in_array($ar[0], $arSections) || $ar[0] == 'all')) {
+        $section = $ar[0];
+        unset($ar[0]);
+        $arCckFields[$drupal_field]['metadata_field'] = [
+          'section' => $section,
+          'tag' => implode("_", $ar),
+        ];
+      }
+      else {
+        // Remove from the list a non usable description.
+        unset($arCckFields[$drupal_field]);
+        Drupal::logger('exif')
+          ->warning(t("not able to understand exif field settings ") . $metadata_field);
+      }
+    }
+    return $arCckFields;
+  }
+
+  /**
+   * Return known metadata sections.
+   *
+   * @return array
+   *   list of sections (as string)
+   */
   public static function getMetadataSections() {
     $sections = [
       'exif',
@@ -41,162 +92,15 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   /**
-   * Going through all the fields that have been created for a given node type
-   * and try to figure out which match the naming convention -> so that we know
-   * which exif information we have to read
+   * Encode read value as UTF8 string.
    *
-   * Naming convention are: field_exif_xxx (xxx would be the name of the exif
-   * tag to read
+   * @param array $value
+   *   Bytes to encode.
    *
-   * @param $arCckFields array of CCK fields
-   *
-   * @return array a list of exif tags to read for this image
+   * @return string
+   *   encoded value
    */
-  public function getMetadataFields($arCckFields = []) {
-    $arSections = self::getMetadataSections();
-    foreach ($arCckFields as $drupal_field => $metadata_settings) {
-      $metadata_field = $metadata_settings['metadata_field'];
-      $ar = explode("_", $metadata_field);
-      if (isset($ar[0]) && (in_array($ar[0], $arSections) || $ar[0] == 'all')) {
-        $section = $ar[0];
-        unset($ar[0]);
-        $arCckFields[$drupal_field]['metadata_field'] = [
-          'section' => $section,
-          'tag' => implode("_", $ar),
-        ];
-      }
-      else {
-        //remove from the list a non usable description.
-        unset($arCckFields[$drupal_field]);
-        Drupal::logger('exif')
-          ->warning(t("not able to understand exif field settings ") . $metadata_field);
-      }
-    }
-    return $arCckFields;
-  }
-
-  public static function checkConfiguration() {
-    return function_exists('exif_read_data') && function_exists('iptcparse');
-  }
-
-
-  /**
-   * Helper function to reformat fields where required.
-   *
-   * Some values (lat/lon) break down into structures, not strings.
-   * Dates should be parsed nicely.
-   */
-  function _reformat($data) {
-    // Make the key lowercase as field names must be.
-    $data = array_change_key_case($data, CASE_LOWER);
-    foreach ($data as $key => &$value) {
-      if (is_array($value)) {
-        $value = array_change_key_case($value, CASE_LOWER);
-        switch ($key) {
-          // GPS values
-          case 'gps_latitude':
-          case 'gps_longitude':
-          case 'gpslatitude':
-          case 'gpslongitude':
-            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
-            break;
-        }
-      }
-      else {
-        if (is_string($value)) {
-          $value = trim($value);
-        }
-        if (!Unicode::validateUtf8($value)) {
-          $value = utf8_encode($value);
-        }
-        switch ($key) {
-          // String values.
-          case 'usercomment':
-          case 'title':
-          case 'comment':
-          case 'author':
-          case 'subject':
-            if ($this->startswith($value, 'UNICODE')) {
-              $value = substr($value, 8);
-            }
-            $value = $this->_exif_reencode_to_utf8($value);
-            break;
-          // Date values.
-          case 'filedatetime':
-            $value = date('c', $value);
-            break;
-          case 'datetimeoriginal':
-          case 'datetime':
-          case 'datetimedigitized':
-            // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
-            // which will look something like 2004-02-12T15:19:21
-            $date_time = explode(" ", $value);
-            $date_time[0] = str_replace(":", "-", $date_time[0]);
-            //TODO
-            /*
-            if (variable_get('exif_granularity', 0) == 1) {
-              $date_time[1] = "00:00:00";
-            }
-            */
-            $value = implode("T", $date_time);
-            break;
-          // GPS values.
-          case 'gpsaltitude':
-          case 'gpsimgdirection':
-            if (!isset($data[$key . 'ref'])) {
-              $data[$key . 'ref'] = 0;
-            }
-            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
-            break;
-          // Flash values.
-          case 'componentsconfiguration':
-          case 'compression':
-          case 'contrast':
-          case 'exposuremode':
-          case 'exposureprogram':
-          case 'flash':
-          case 'focalplaneresolutionunit':
-          case 'gaincontrol':
-          case 'lightsource':
-          case 'meteringmode':
-          case 'orientation':
-          case 'resolutionunit':
-          case 'saturation':
-          case 'scenecapturetype':
-          case 'sensingmethod':
-          case 'sensitivitytype':
-          case 'sharpness':
-          case 'subjectdistancerange':
-          case 'whitebalance':
-            $human_descriptions = $this->getHumanReadableDescriptions()[$key];
-            if (isset($human_descriptions[$value])) {
-              $value = $human_descriptions[$value];
-            }
-            break;
-          // Exposure values.
-          case 'exposuretime':
-            if (strpos($value, '/') !== FALSE) {
-              $value = $this->_normalise_fraction($value) . 's';
-            }
-            break;
-          // Focal Length values.
-          case 'focallength':
-            if (strpos($value, '/') !== FALSE) {
-              $value = $this->_normalise_fraction($value) . 'mm';
-            }
-            break;
-        }
-      }
-    }
-    return $data;
-  }
-
-  public function startswith($hay, $needle) {
-    return substr($hay, 0, strlen($needle)) === $needle;
-  }
-
-
-  function _exif_reencode_to_utf8($value) {
+  protected function _exif_reencode_to_utf8(array $value) {
     $unicode_list = unpack("v*", $value);
     $result = "";
     foreach ($unicode_list as $key => $value) {
@@ -210,125 +114,43 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   /**
-   * Normalise fractions.
-   */
-  function _normalise_fraction($fraction) {
-    $parts = explode('/', $fraction);
-    $top = $parts[0];
-    $bottom = $parts[1];
-
-    if ($top > $bottom) {
-      // Value > 1
-      if (($top % $bottom) == 0) {
-        $value = ($top / $bottom);
-      }
-      else {
-        $value = round(($top / $bottom), 2);
-      }
-    }
-    else {
-      if ($top == $bottom) {
-        // Value = 1
-        $value = '1';
-      }
-      else {
-        // Value < 1
-        if ($top == 1) {
-          $value = '1/' . $bottom;
-        }
-        else {
-          if ($top != 0) {
-            $value = '1/' . round(($bottom / $top), 0);
-          }
-          else {
-            $value = '0';
-          }
-        }
-      }
-    }
-    return $value;
-  }
-
-  /**
-   * Helper function to change GPS co-ords into decimals.
-   */
-  function _exif_reformat_DMS2D($value, $ref) {
-    if (!is_array($value)) {
-      $value = [$value];
-    }
-    $dec = 0;
-    $granularity = 0;
-    foreach ($value as $element) {
-      $parts = explode('/', $element);
-      $dec += (float) (((float) $parts[0] / (float) $parts[1]) / pow(60, $granularity));
-      $granularity++;
-    }
-    if ($ref == 'S' || $ref == 'W') {
-      $dec *= -1;
-    }
-    return $dec;
-  }
-
-  /**
-   * Helper function to remove empty iptc keywords
-   */
-  function _del_empty_iptc_keywords($data) {
-    if (!in_array('', $data, TRUE)) {
-      return $data;
-    }
-    foreach ($data as $key => $value) {
-      if (empty($value)) {
-        unset($data[$key]);
-      }
-    }
-    return $data;
-  }
-
-  /**
-   * $arOptions liste of options for the method :
-   * # enable_sections : (default : TRUE) retrieve also sections.
+   * Read all metadata tags.
    *
    * @param string $file
-   * @param boolean $enable_sections
+   *   Path to file.
+   * @param bool $enable_sections
+   *   Indicate if the information is retrieve by sections or flatten.
    *
-   * @return array $data
+   * @return array
+   *   Values by key and optionally sections.
    */
   public function readMetadataTags($file, $enable_sections = TRUE) {
     if (!file_exists($file)) {
       return [];
     }
     $data1 = $this->readExifTags($file, $enable_sections);
-    $data2 = $this->readIPTCTags($file, $enable_sections);
+    $data2 = $this->readIptcTags($file, $enable_sections);
     $data = array_merge($data1, $data2);
 
     if (is_array($data)) {
       foreach ($data as $section => $section_data) {
-        $section_data = $this->_reformat($section_data);
+        $section_data = $this->reformat($section_data);
         $data[$section] = $section_data;
       }
     }
     return $data;
   }
 
-  function filterMetadataTags($arSmallMetadata, $arTagNames) {
-    $info = [];
-    foreach ($arTagNames as $drupal_field => $metadata_settings) {
-      $tagName = $metadata_settings['metadata_field'];
-      if (!empty($arSmallMetadata[$tagName['section']][$tagName['tag']])) {
-        $info[$tagName['section']][$tagName['tag']] = $arSmallMetadata[$tagName['section']][$tagName['tag']];
-      }
-    }
-    return $info;
-  }
-
   /**
-   * Read the Information from a picture according to the fields specified in
-   * CCK
+   * Read Exif Information from a file.
    *
-   * @param $file
-   * @param $enable_sections
+   * @param string $file
+   *   Path to file.
+   * @param bool $enable_sections
+   *   Indicate if the information is retrieve by sections or flatten.
    *
    * @return array
+   *   Values by key and optionally sections.
    */
   public function readExifTags($file, $enable_sections = TRUE) {
     $ar_supported_types = ['jpg', 'jpeg'];
@@ -338,8 +160,9 @@ Class ExifPHPExtension implements ExifInterface {
     $exif = [];
     try {
       $exif = @exif_read_data($file, 0, $enable_sections);
-    } catch (\Exception $e) {
-      // Logs a notice
+    }
+    catch (\Exception $e) {
+      // Logs a notice.
       Drupal::logger('exif')
         ->warning(t("Error while reading EXIF tags from image."), $e);
     }
@@ -347,7 +170,6 @@ Class ExifPHPExtension implements ExifInterface {
     foreach ((array) $exif as $key1 => $value1) {
 
       if (is_array($value1)) {
-        $value2 = [];
         foreach ((array) $value1 as $key3 => $value3) {
           $value[strtolower($key3)] = $value3;
         }
@@ -361,33 +183,44 @@ Class ExifPHPExtension implements ExifInterface {
     return $arSmallExif;
   }
 
+  /**
+   * Get extension from a path.
+   *
+   * @param string $file
+   *   Path to file.
+   *
+   * @return string
+   *   the extension.
+   */
   private function getFileType($file) {
     $ar = explode('.', $file);
     $ending = $ar[count($ar) - 1];
     return $ending;
   }
 
-  function _checkKeywordString($keyword) {
-    return (strpos($keyword[0], ';') !== FALSE) ? explode(';', $keyword[0]) : $keyword;
-  }
+  const IPTC_KEYWORD_KEY = "2#025";
 
   /**
-   * Read IPTC tags.
+   * Read IPTC Information from a file.
    *
-   * @param String $file Path to image to read IPTC from
-   * @param boolean $enable_sections
+   * @param string $file
+   *   Path to file.
+   * @param bool $enable_sections
+   *   Indicate if the information is retrieve by sections or flatten.
    *
+   * @return array
+   *   Values by key and optionally sections.
    */
-  public function readIPTCTags($file, $enable_sections) {
-    $humanReadableKey = $this->getHumanReadableIPTCkey();
+  private function readIptcTags($file, $enable_sections) {
+    $humanReadableKey = $this->getHumanReadableIptcDescriptions();
     $infoImage = [];
-    $size = GetImageSize($file, $infoImage);
+    getimagesize($file, $infoImage);
     $iptc = empty($infoImage["APP13"]) ? [] : iptcparse($infoImage["APP13"]);
     $arSmallIPTC = [];
     if (is_array($iptc)) {
-      if (array_key_exists('2#025', $iptc)) {
-        $iptc["2#025"] = $this->_checkKeywordString($iptc["2#025"]);
-        $iptc["2#025"] = $this->_del_empty_iptc_keywords($iptc["2#025"]);
+      if (array_key_exists(IPTC_KEYWORD_KEY, $iptc)) {
+        $iptc[IPTC_KEYWORD_KEY] = $this->checkKeywordString($iptc[IPTC_KEYWORD_KEY]);
+        $iptc[IPTC_KEYWORD_KEY] = $this->removeEmptyIptcKeywords($iptc[IPTC_KEYWORD_KEY]);
       }
       foreach ($iptc as $key => $value) {
         if (count($value) == 1) {
@@ -413,7 +246,570 @@ Class ExifPHPExtension implements ExifInterface {
     }
   }
 
+  /**
+   * Just some little helper function to get the iptc fields.
+   *
+   * @return array
+   *   Map of IPTC key with the associated description.
+   */
+  public function getHumanReadableIptcDescriptions() {
+    return [
+      "2#202" => "object_data_preview_data",
+      "2#201" => "object_data_preview_file_format_version",
+      "2#200" => "object_data_preview_file_format",
+      "2#154" => "audio_outcue",
+      "2#153" => "audio_duration",
+      "2#152" => "audio_sampling_resolution",
+      "2#151" => "audio_sampling_rate",
+      "2#150" => "audio_type",
+      "2#135" => "language_identifier",
+      "2#131" => "image_orientation",
+      "2#130" => "image_type",
+      "2#125" => "rasterized_caption",
+      "2#122" => "writer",
+      "2#120" => "caption",
+      "2#118" => "contact",
+      "2#116" => "copyright_notice",
+      "2#115" => "source",
+      "2#110" => "credit",
+      "2#105" => "headline",
+      "2#103" => "original_transmission_reference",
+      "2#101" => "country_name",
+      "2#100" => "country_code",
+      "2#095" => "state",
+      "2#092" => "sublocation",
+      "2#090" => "city",
+      "2#085" => "by_line_title",
+      "2#080" => "by_line",
+      "2#075" => "object_cycle",
+      "2#070" => "program_version",
+      "2#065" => "originating_program",
+      "2#063" => "digital_creation_time",
+      "2#062" => "digital_creation_date",
+      "2#060" => "creation_time",
+      "2#055" => "creation_date",
+      "2#050" => "reference_number",
+      "2#047" => "reference_date",
+      "2#045" => "reference_service",
+      "2#042" => "action_advised",
+      "2#040" => "special_instruction",
+      "2#038" => "expiration_time",
+      "2#037" => "expiration_date",
+      "2#035" => "release_time",
+      "2#030" => "release_date",
+      "2#027" => "content_location_name",
+      "2#026" => "content_location_code",
+      "2#025" => "keywords",
+      "2#022" => "fixture_identifier",
+      "2#020" => "supplemental_category",
+      "2#015" => "category",
+      "2#010" => "subject_reference",
+      "2#008" => "editorial_update",
+      "2#007" => "edit_status",
+      "2#005" => "object_name",
+      "2#004" => "object_attribute_reference",
+      "2#003" => "object_type_reference",
+      "2#000" => "record_version",
+      "1#090" => "envelope_character_set",
+    ];
+  }
 
+  /**
+   * Helper function to split keyword separated by ';' in array of keywords.
+   *
+   * @param string $keyword
+   *   String with all keywords.
+   *
+   * @return array
+   *   the array of keywords.
+   */
+  private function checkKeywordString($keyword) {
+    return (strpos($keyword[0], ';') !== FALSE) ? explode(';', $keyword[0]) : $keyword;
+  }
+
+  /**
+   * Helper function to remove empty IPTC keywords.
+   *
+   * @param array $data
+   *   List of keywords.
+   *
+   * @return array
+   *   List of keywords.
+   */
+  private function removeEmptyIptcKeywords(array $data) {
+    if (!in_array('', $data, TRUE)) {
+      return $data;
+    }
+    foreach ($data as $key => $value) {
+      if (empty($value)) {
+        unset($data[$key]);
+      }
+    }
+    return $data;
+  }
+
+  /**
+   * Helper function to reformat fields where required.
+   *
+   * Some values (lat/lon) break down into structures, not strings.
+   * Dates should be parsed nicely.
+   *
+   * @param array $data
+   *   Section data containing all keyword woth associated value.
+   *
+   * @return array
+   *   section data containing all keyword woth associated value.
+   */
+  private function reformat(array $data) {
+    // Make the key lowercase as field names must be.
+    $data = array_change_key_case($data, CASE_LOWER);
+    foreach ($data as $key => &$value) {
+      if (is_array($value)) {
+        $value = array_change_key_case($value, CASE_LOWER);
+        switch ($key) {
+          // GPS values.
+          case 'gps_latitude':
+          case 'gps_longitude':
+          case 'gpslatitude':
+          case 'gpslongitude':
+            $value = $this->exifReformatGps($value, $data[$key . 'ref']);
+            break;
+        }
+      }
+      else {
+        if (is_string($value)) {
+          $value = trim($value);
+        }
+        if (!Unicode::validateUtf8($value)) {
+          $value = utf8_encode($value);
+        }
+        switch ($key) {
+          // String values.
+          case 'usercomment':
+          case 'title':
+          case 'comment':
+          case 'author':
+          case 'subject':
+            if ($this->startswith($value, 'UNICODE')) {
+              $value = substr($value, 8);
+            }
+            $value = $this->_exif_reencode_to_utf8($value);
+            break;
+
+          // Date values.
+          case 'filedatetime':
+            $value = date('c', $value);
+            break;
+
+          case 'datetimeoriginal':
+          case 'datetime':
+          case 'datetimedigitized':
+            // In case we get a datefield,
+            // we need to reformat it to the ISO 8601 standard,
+            // which will look something like 2004-02-12T15:19:21.
+            $date_time = explode(" ", $value);
+            $date_time[0] = str_replace(":", "-", $date_time[0]);
+            // TODO
+            // if (variable_get('exif_granularity', 0) == 1) {
+            // $date_time[1] = "00:00:00";.
+            // }.
+            $value = implode("T", $date_time);
+            break;
+
+          // GPS values.
+          case 'gpsaltitude':
+          case 'gpsimgdirection':
+            if (!isset($data[$key . 'ref'])) {
+              $data[$key . 'ref'] = 0;
+            }
+            $value = $this->exifReformatGps($value, $data[$key . 'ref']);
+            break;
+
+          // Flash values.
+          case 'componentsconfiguration':
+          case 'compression':
+          case 'contrast':
+          case 'exposuremode':
+          case 'exposureprogram':
+          case 'flash':
+          case 'focalplaneresolutionunit':
+          case 'gaincontrol':
+          case 'lightsource':
+          case 'meteringmode':
+          case 'orientation':
+          case 'resolutionunit':
+          case 'saturation':
+          case 'scenecapturetype':
+          case 'sensingmethod':
+          case 'sensitivitytype':
+          case 'sharpness':
+          case 'subjectdistancerange':
+          case 'whitebalance':
+            $human_descriptions = $this->getHumanReadableDescriptions()[$key];
+            if (isset($human_descriptions[$value])) {
+              $value = $human_descriptions[$value];
+            }
+            break;
+
+          // Exposure values.
+          case 'exposuretime':
+            if (strpos($value, '/') !== FALSE) {
+              $value = $this->normaliseFraction($value) . 's';
+            }
+            break;
+
+          // Focal Length values.
+          case 'focallength':
+            if (strpos($value, '/') !== FALSE) {
+              $value = $this->normaliseFraction($value) . 'mm';
+            }
+            break;
+        }
+      }
+    }
+    return $data;
+  }
+
+  /**
+   * Helper function to change GPS co-ords into decimals.
+   *
+   * @param mixed $value
+   *   Raw value as array or string.
+   * @param string $ref
+   *   Direction as a char (S/N/E/W)
+   *
+   * @return float
+   *   Calculated decimal value
+   */
+  private function exifReformatGps($value, $ref) {
+    if (!is_array($value)) {
+      $value = [$value];
+    }
+    $dec = 0;
+    $granularity = 0;
+    foreach ($value as $element) {
+      $parts = explode('/', $element);
+      $dec += (float) (((float) $parts[0] / (float) $parts[1]) / pow(60, $granularity));
+      $granularity++;
+    }
+    if ($ref == 'S' || $ref == 'W') {
+      $dec *= -1;
+    }
+    return $dec;
+  }
+
+  /**
+   * Helper function to know if a substring start a string.
+   *
+   * @param string $hay
+   *   The string where we look for.
+   * @param string $needle
+   *   The string to look for.
+   *
+   * @return bool
+   *   if condition is valid.
+   */
+  private function startswith($hay, $needle) {
+    return substr($hay, 0, strlen($needle)) === $needle;
+  }
+
+  /**
+   * Convert machine tag values to their human-readable descriptions.
+   *
+   * Sources:
+   *    http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html.
+   */
+  public function getHumanReadableDescriptions() {
+    $machineToHuman = [];
+    $machineToHuman['componentsconfiguration'] = [
+      '0' => t('-'),
+      '1' => t('Y'),
+      '2' => t('Cb'),
+      '3' => t('Cr'),
+      '4' => t('R'),
+      '5' => t('G'),
+      '6' => t('B'),
+    ];
+    $machineToHuman['compression'] = [
+      '1' => t('Uncompressed'),
+      '2' => t('CCITT 1D'),
+      '3' => t('T4/Group 3 Fax'),
+      '4' => t('T6/Group 4 Fax'),
+      '5' => t('LZW'),
+      '6' => t('JPEG (old-style)'),
+      '7' => t('JPEG'),
+      '8' => t('Adobe Deflate'),
+      '9' => t('JBIG B&W'),
+      '10' => t('JBIG Color'),
+      '99' => t('JPEG'),
+      '262' => t('Kodak 262'),
+      '32766' => t('Next'),
+      '32767' => t('Sony ARW Compressed'),
+      '32769' => t('Packed RAW'),
+      '32770' => t('Samsung SRW Compressed'),
+      '32771' => t('CCIRLEW'),
+      '32773' => t('PackBits'),
+      '32809' => t('Thunderscan'),
+      '32867' => t('Kodak KDC Compressed'),
+      '32895' => t('IT8CTPAD'),
+      '32896' => t('IT8LW'),
+      '32897' => t('IT8MP'),
+      '32898' => t('IT8BL'),
+      '32908' => t('PixarFilm'),
+      '32909' => t('PixarLog'),
+      '32946' => t('Deflate'),
+      '32947' => t('DCS'),
+      '34661' => t('JBIG'),
+      '34676' => t('SGILog'),
+      '34677' => t('SGILog24'),
+      '34712' => t('JPEG 2000'),
+      '34713' => t('Nikon NEF Compressed'),
+      '34715' => t('JBIG2 TIFF FX'),
+      '34718' => t('Microsoft Document Imaging (MDI) Binary Level Codec'),
+      '34719' => t('Microsoft Document Imaging (MDI) Progressive Transform Codec'),
+      '34720' => t('Microsoft Document Imaging (MDI) Vector'),
+      '65000' => t('Kodak DCR Compressed'),
+      '65535' => t('Pentax PEF Compressed'),
+    ];
+    $machineToHuman['contrast'] = [
+      '0' => t('Normal'),
+      '1' => t('Low'),
+      '2' => t('High'),
+    ];
+    $machineToHuman['exposuremode'] = [
+      '0' => t('Auto'),
+      '1' => t('Manual'),
+      '2' => t('Auto bracket'),
+    ];
+    // (the value of 9 is not standard EXIF, but is used by the Canon EOS 7D)
+    $machineToHuman['exposureprogram'] = [
+      '0' => t('Not Defined'),
+      '1' => t('Manual'),
+      '2' => t('Program AE'),
+      '3' => t('Aperture-priority AE'),
+      '4' => t('Shutter speed priority AE'),
+      '5' => t('Creative (Slow speed)'),
+      '6' => t('Action (High speed)'),
+      '7' => t('Portrait'),
+      '8' => t('Landscape'),
+      '9' => t('Bulb'),
+    ];
+    $machineToHuman['flash'] = [
+      '0' => t('Flash did not fire'),
+      '1' => t('Flash fired'),
+      '5' => t('Strobe return light not detected'),
+      '7' => t('Strobe return light detected'),
+      '9' => t('Flash fired, compulsory flash mode'),
+      '13' => t('Flash fired, compulsory flash mode, return light not detected'),
+      '15' => t('Flash fired, compulsory flash mode, return light detected'),
+      '16' => t('Flash did not fire, compulsory flash mode'),
+      '24' => t('Flash did not fire, auto mode'),
+      '25' => t('Flash fired, auto mode'),
+      '29' => t('Flash fired, auto mode, return light not detected'),
+      '31' => t('Flash fired, auto mode, return light detected'),
+      '32' => t('No flash function'),
+      '65' => t('Flash fired, red-eye reduction mode'),
+      '69' => t('Flash fired, red-eye reduction mode, return light not detected'),
+      '71' => t('Flash fired, red-eye reduction mode, return light detected'),
+      '73' => t('Flash fired, compulsory flash mode, red-eye reduction mode'),
+      '77' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
+      '79' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
+      '89' => t('Flash fired, auto mode, red-eye reduction mode'),
+      '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
+      '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
+    ];
+    // (values 1, 4 and 5 are not standard EXIF)
+    $machineToHuman['focalplaneresolutionunit'] = [
+      '1' => t('None'),
+      '2' => t('inches'),
+      '3' => t('cm'),
+      '4' => t('mm'),
+      '5' => t('um'),
+    ];
+    $machineToHuman['gaincontrol'] = [
+      '0' => t('None'),
+      '1' => t('Low gain up'),
+      '2' => t('High gain up'),
+      '3' => t('Low gain down'),
+      '4' => t('High gain down'),
+    ];
+    $machineToHuman['lightsource'] = [
+      '0' => t('Unknown'),
+      '1' => t('Daylight'),
+      '2' => t('Fluorescent'),
+      '3' => t('Tungsten (Incandescent)'),
+      '4' => t('Flash'),
+      '9' => t('Fine Weather'),
+      '10' => t('Cloudy'),
+      '11' => t('Shade'),
+      '12' => t('Daylight Fluorescent'),
+      '13' => t('Day White Fluorescent'),
+      '14' => t('Cool White Fluorescent'),
+      '15' => t('White Fluorescent'),
+      '16' => t('Warm White Fluorescent'),
+      '17' => t('Standard Light A'),
+      '18' => t('Standard Light B'),
+      '19' => t('Standard Light C'),
+      '20' => t('D55'),
+      '21' => t('D65'),
+      '22' => t('D75'),
+      '23' => t('D50'),
+      '24' => t('ISO Studio Tungsten'),
+      '255' => t('Other'),
+    ];
+    $machineToHuman['meteringmode'] = [
+      '0' => t('Unknown'),
+      '1' => t('Average'),
+      '2' => t('Center-weighted average'),
+      '3' => t('Spot'),
+      '4' => t('Multi-spot'),
+      '5' => t('Multi-segment'),
+      '6' => t('Partial'),
+      '255' => t('Other'),
+    ];
+    $machineToHuman['orientation'] = [
+      '1' => t('Horizontal (normal)'),
+      '2' => t('Mirror horizontal'),
+      '3' => t('Rotate 180'),
+      '4' => t('Mirror vertical'),
+      '5' => t('Mirror horizontal and rotate 270 CW'),
+      '6' => t('Rotate 90 CW'),
+      '7' => t('Mirror horizontal and rotate 90 CW'),
+      '8' => t('Rotate 270 CW'),
+    ];
+    // (the value 1 is not standard EXIF)
+    $machineToHuman['resolutionunit'] = [
+      '1' => t('None'),
+      '2' => t('inches'),
+      '3' => t('cm'),
+    ];
+    $machineToHuman['saturation'] = [
+      '0' => t('Normal'),
+      '1' => t('Low'),
+      '2' => t('High'),
+    ];
+    $machineToHuman['scenecapturetype'] = [
+      '0' => t('Standard'),
+      '1' => t('Landscape'),
+      '2' => t('Portrait'),
+      '3' => t('Night'),
+    ];
+    // (values 1 and 6 are not standard EXIF)
+    $machineToHuman['sensingmethod'] = [
+      '1' => t('Monochrome area'),
+      '2' => t('One-chip color area'),
+      '3' => t('Two-chip color area'),
+      '4' => t('Three-chip color area'),
+      '5' => t('Color sequential area'),
+      '6' => t('Monochrome linear'),
+      '7' => t('Trilinear'),
+      '8' => t('Color sequential linear'),
+    ];
+    // (applies to EXIF:ISO tag)
+    $machineToHuman['sensitivitytype'] = [
+      '0' => t('Unknown'),
+      '1' => t('Standard Output Sensitivity'),
+      '2' => t('Recommended Exposure Index'),
+      '3' => t('ISO Speed'),
+      '4' => t('Standard Output Sensitivity and Recommended Exposure Index'),
+      '5' => t('Standard Output Sensitivity and ISO Speed'),
+      '6' => t('Recommended Exposure Index and ISO Speed'),
+      '7' => t('Standard Output Sensitivity, Recommended Exposure Index and ISO Speed'),
+    ];
+    $machineToHuman['sharpness'] = [
+      '0' => t('Normal'),
+      '1' => t('Soft'),
+      '2' => t('Hard'),
+    ];
+    $machineToHuman['subjectdistancerange'] = [
+      '0' => t('Unknown'),
+      '1' => t('Macro'),
+      '2' => t('Close'),
+      '3' => t('Distant'),
+    ];
+    $machineToHuman['uncompressed'] = [
+      '0' => t('No'),
+      '1' => t('Yes'),
+    ];
+    $machineToHuman['whitebalance'] = [
+      '0' => t('Auto'),
+      '1' => t('Manual'),
+    ];
+    return $machineToHuman;
+
+  }
+
+  /**
+   * Normalise fractions.
+   */
+  private function normaliseFraction($fraction) {
+    $parts = explode('/', $fraction);
+    $top = $parts[0];
+    $bottom = $parts[1];
+
+    if ($top > $bottom) {
+      // Value > 1.
+      if (($top % $bottom) == 0) {
+        $value = ($top / $bottom);
+      }
+      else {
+        $value = round(($top / $bottom), 2);
+      }
+    }
+    else {
+      if ($top == $bottom) {
+        // Value = 1.
+        $value = '1';
+      }
+      else {
+        // Value < 1.
+        if ($top == 1) {
+          $value = '1/' . $bottom;
+        }
+        else {
+          if ($top != 0) {
+            $value = '1/' . round(($bottom / $top), 0);
+          }
+          else {
+            $value = '0';
+          }
+        }
+      }
+    }
+    return $value;
+  }
+
+  /**
+   * List of known metadata keys.
+   *
+   * Metadata combine EXIF and IPTC keys.
+   *
+   * @return array
+   *   Metadata Keys.
+   */
+  public function getFieldKeys() {
+    $exif_keys_temp = $this->getHumanReadableExifKeys();
+    $exif_keys = [];
+    foreach ($exif_keys_temp as $value) {
+      $exif_keys[$value] = $value;
+    }
+    $iptc_keys_temp = array_values($this->getHumanReadableIptcDescriptions());
+    $iptc_keys = [];
+    foreach ($iptc_keys_temp as $value) {
+      $current_value = "iptc_" . $value;
+      $iptc_keys[$current_value] = $current_value;
+    }
+    $fields = array_merge($exif_keys, $iptc_keys);
+    ksort($fields);
+    return $fields;
+  }
+
+  /**
+   * List of known EXIF keys.
+   *
+   * @return array
+   *   Exif keys
+   */
   public function getHumanReadableExifKeys() {
     return [
       "file_filename",
@@ -782,317 +1178,5 @@ Class ExifPHPExtension implements ExifInterface {
       "winxp_interoperabilityversion",
     ];
   }
-
-  /**
-   * Just some little helper function to get the iptc fields
-   *
-   * @return array
-   *
-   */
-  public function getHumanReadableIPTCkey() {
-    return [
-      "2#202" => "object_data_preview_data",
-      "2#201" => "object_data_preview_file_format_version",
-      "2#200" => "object_data_preview_file_format",
-      "2#154" => "audio_outcue",
-      "2#153" => "audio_duration",
-      "2#152" => "audio_sampling_resolution",
-      "2#151" => "audio_sampling_rate",
-      "2#150" => "audio_type",
-      "2#135" => "language_identifier",
-      "2#131" => "image_orientation",
-      "2#130" => "image_type",
-      "2#125" => "rasterized_caption",
-      "2#122" => "writer",
-      "2#120" => "caption",
-      "2#118" => "contact",
-      "2#116" => "copyright_notice",
-      "2#115" => "source",
-      "2#110" => "credit",
-      "2#105" => "headline",
-      "2#103" => "original_transmission_reference",
-      "2#101" => "country_name",
-      "2#100" => "country_code",
-      "2#095" => "state",
-      "2#092" => "sublocation",
-      "2#090" => "city",
-      "2#085" => "by_line_title",
-      "2#080" => "by_line",
-      "2#075" => "object_cycle",
-      "2#070" => "program_version",
-      "2#065" => "originating_program",
-      "2#063" => "digital_creation_time",
-      "2#062" => "digital_creation_date",
-      "2#060" => "creation_time",
-      "2#055" => "creation_date",
-      "2#050" => "reference_number",
-      "2#047" => "reference_date",
-      "2#045" => "reference_service",
-      "2#042" => "action_advised",
-      "2#040" => "special_instruction",
-      "2#038" => "expiration_time",
-      "2#037" => "expiration_date",
-      "2#035" => "release_time",
-      "2#030" => "release_date",
-      "2#027" => "content_location_name",
-      "2#026" => "content_location_code",
-      "2#025" => "keywords",
-      "2#022" => "fixture_identifier",
-      "2#020" => "supplemental_category",
-      "2#015" => "category",
-      "2#010" => "subject_reference",
-      "2#008" => "editorial_update",
-      "2#007" => "edit_status",
-      "2#005" => "object_name",
-      "2#004" => "object_attribute_reference",
-      "2#003" => "object_type_reference",
-      "2#000" => "record_version",
-      "1#090" => "envelope_character_set",
-    ];
-  }
-
-  public function getFieldKeys() {
-    $exif_keys_temp = $this->getHumanReadableExifKeys();
-    $exif_keys = [];
-    foreach ($exif_keys_temp as $value) {
-      $exif_keys[$value] = $value;
-    }
-    $iptc_keys_temp = array_values($this->getHumanReadableIPTCkey());
-    $iptc_keys = [];
-    foreach ($iptc_keys_temp as $value) {
-      $current_value = "iptc_" . $value;
-      $iptc_keys[$current_value] = $current_value;
-    }
-    $fields = array_merge($exif_keys, $iptc_keys);
-    ksort($fields);
-    return $fields;
-  }
-
-  /**
-   * Convert machine tag values to their human-readable descriptions.
-   * Sources:
-   *  http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html
-   *  http://www.cipa.jp/english/hyoujunka/kikaku/pdf/DC-008-2010_E.pdf
-   */
-  public function getHumanReadableDescriptions() {
-    $machineToHuman = [];
-    $machineToHuman['componentsconfiguration'] = [
-      '0' => t('-'),
-      '1' => t('Y'),
-      '2' => t('Cb'),
-      '3' => t('Cr'),
-      '4' => t('R'),
-      '5' => t('G'),
-      '6' => t('B'),
-    ];
-    $machineToHuman['compression'] = [
-      '1' => t('Uncompressed'),
-      '2' => t('CCITT 1D'),
-      '3' => t('T4/Group 3 Fax'),
-      '4' => t('T6/Group 4 Fax'),
-      '5' => t('LZW'),
-      '6' => t('JPEG (old-style)'),
-      '7' => t('JPEG'),
-      '8' => t('Adobe Deflate'),
-      '9' => t('JBIG B&W'),
-      '10' => t('JBIG Color'),
-      '99' => t('JPEG'),
-      '262' => t('Kodak 262'),
-      '32766' => t('Next'),
-      '32767' => t('Sony ARW Compressed'),
-      '32769' => t('Packed RAW'),
-      '32770' => t('Samsung SRW Compressed'),
-      '32771' => t('CCIRLEW'),
-      '32773' => t('PackBits'),
-      '32809' => t('Thunderscan'),
-      '32867' => t('Kodak KDC Compressed'),
-      '32895' => t('IT8CTPAD'),
-      '32896' => t('IT8LW'),
-      '32897' => t('IT8MP'),
-      '32898' => t('IT8BL'),
-      '32908' => t('PixarFilm'),
-      '32909' => t('PixarLog'),
-      '32946' => t('Deflate'),
-      '32947' => t('DCS'),
-      '34661' => t('JBIG'),
-      '34676' => t('SGILog'),
-      '34677' => t('SGILog24'),
-      '34712' => t('JPEG 2000'),
-      '34713' => t('Nikon NEF Compressed'),
-      '34715' => t('JBIG2 TIFF FX'),
-      '34718' => t('Microsoft Document Imaging (MDI) Binary Level Codec'),
-      '34719' => t('Microsoft Document Imaging (MDI) Progressive Transform Codec'),
-      '34720' => t('Microsoft Document Imaging (MDI) Vector'),
-      '65000' => t('Kodak DCR Compressed'),
-      '65535' => t('Pentax PEF Compressed'),
-    ];
-    $machineToHuman['contrast'] = [
-      '0' => t('Normal'),
-      '1' => t('Low'),
-      '2' => t('High'),
-    ];
-    $machineToHuman['exposuremode'] = [
-      '0' => t('Auto'),
-      '1' => t('Manual'),
-      '2' => t('Auto bracket'),
-    ];
-    // (the value of 9 is not standard EXIF, but is used by the Canon EOS 7D)
-    $machineToHuman['exposureprogram'] = [
-      '0' => t('Not Defined'),
-      '1' => t('Manual'),
-      '2' => t('Program AE'),
-      '3' => t('Aperture-priority AE'),
-      '4' => t('Shutter speed priority AE'),
-      '5' => t('Creative (Slow speed)'),
-      '6' => t('Action (High speed)'),
-      '7' => t('Portrait'),
-      '8' => t('Landscape'),
-      '9' => t('Bulb'),
-    ];
-    $machineToHuman['flash'] = [
-      '0' => t('Flash did not fire'),
-      '1' => t('Flash fired'),
-      '5' => t('Strobe return light not detected'),
-      '7' => t('Strobe return light detected'),
-      '9' => t('Flash fired, compulsory flash mode'),
-      '13' => t('Flash fired, compulsory flash mode, return light not detected'),
-      '15' => t('Flash fired, compulsory flash mode, return light detected'),
-      '16' => t('Flash did not fire, compulsory flash mode'),
-      '24' => t('Flash did not fire, auto mode'),
-      '25' => t('Flash fired, auto mode'),
-      '29' => t('Flash fired, auto mode, return light not detected'),
-      '31' => t('Flash fired, auto mode, return light detected'),
-      '32' => t('No flash function'),
-      '65' => t('Flash fired, red-eye reduction mode'),
-      '69' => t('Flash fired, red-eye reduction mode, return light not detected'),
-      '71' => t('Flash fired, red-eye reduction mode, return light detected'),
-      '73' => t('Flash fired, compulsory flash mode, red-eye reduction mode'),
-      '77' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
-      '79' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
-      '89' => t('Flash fired, auto mode, red-eye reduction mode'),
-      '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
-      '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
-    ];
-    // (values 1, 4 and 5 are not standard EXIF)
-    $machineToHuman['focalplaneresolutionunit'] = [
-      '1' => t('None'),
-      '2' => t('inches'),
-      '3' => t('cm'),
-      '4' => t('mm'),
-      '5' => t('um'),
-    ];
-    $machineToHuman['gaincontrol'] = [
-      '0' => t('None'),
-      '1' => t('Low gain up'),
-      '2' => t('High gain up'),
-      '3' => t('Low gain down'),
-      '4' => t('High gain down'),
-    ];
-    $machineToHuman['lightsource'] = [
-      '0' => t('Unknown'),
-      '1' => t('Daylight'),
-      '2' => t('Fluorescent'),
-      '3' => t('Tungsten (Incandescent)'),
-      '4' => t('Flash'),
-      '9' => t('Fine Weather'),
-      '10' => t('Cloudy'),
-      '11' => t('Shade'),
-      '12' => t('Daylight Fluorescent'),
-      '13' => t('Day White Fluorescent'),
-      '14' => t('Cool White Fluorescent'),
-      '15' => t('White Fluorescent'),
-      '16' => t('Warm White Fluorescent'),
-      '17' => t('Standard Light A'),
-      '18' => t('Standard Light B'),
-      '19' => t('Standard Light C'),
-      '20' => t('D55'),
-      '21' => t('D65'),
-      '22' => t('D75'),
-      '23' => t('D50'),
-      '24' => t('ISO Studio Tungsten'),
-      '255' => t('Other'),
-    ];
-    $machineToHuman['meteringmode'] = [
-      '0' => t('Unknown'),
-      '1' => t('Average'),
-      '2' => t('Center-weighted average'),
-      '3' => t('Spot'),
-      '4' => t('Multi-spot'),
-      '5' => t('Multi-segment'),
-      '6' => t('Partial'),
-      '255' => t('Other'),
-    ];
-    $machineToHuman['orientation'] = [
-      '1' => t('Horizontal (normal)'),
-      '2' => t('Mirror horizontal'),
-      '3' => t('Rotate 180'),
-      '4' => t('Mirror vertical'),
-      '5' => t('Mirror horizontal and rotate 270 CW'),
-      '6' => t('Rotate 90 CW'),
-      '7' => t('Mirror horizontal and rotate 90 CW'),
-      '8' => t('Rotate 270 CW'),
-    ];
-    // (the value 1 is not standard EXIF)
-    $machineToHuman['resolutionunit'] = [
-      '1' => t('None'),
-      '2' => t('inches'),
-      '3' => t('cm'),
-    ];
-    $machineToHuman['saturation'] = [
-      '0' => t('Normal'),
-      '1' => t('Low'),
-      '2' => t('High'),
-    ];
-    $machineToHuman['scenecapturetype'] = [
-      '0' => t('Standard'),
-      '1' => t('Landscape'),
-      '2' => t('Portrait'),
-      '3' => t('Night'),
-    ];
-    // (values 1 and 6 are not standard EXIF)
-    $machineToHuman['sensingmethod'] = [
-      '1' => t('Monochrome area'),
-      '2' => t('One-chip color area'),
-      '3' => t('Two-chip color area'),
-      '4' => t('Three-chip color area'),
-      '5' => t('Color sequential area'),
-      '6' => t('Monochrome linear'),
-      '7' => t('Trilinear'),
-      '8' => t('Color sequential linear'),
-    ];
-    // (applies to EXIF:ISO tag)
-    $machineToHuman['sensitivitytype'] = [
-      '0' => t('Unknown'),
-      '1' => t('Standard Output Sensitivity'),
-      '2' => t('Recommended Exposure Index'),
-      '3' => t('ISO Speed'),
-      '4' => t('Standard Output Sensitivity and Recommended Exposure Index'),
-      '5' => t('Standard Output Sensitivity and ISO Speed'),
-      '6' => t('Recommended Exposure Index and ISO Speed'),
-      '7' => t('Standard Output Sensitivity, Recommended Exposure Index and ISO Speed'),
-    ];
-    $machineToHuman['sharpness'] = [
-      '0' => t('Normal'),
-      '1' => t('Soft'),
-      '2' => t('Hard'),
-    ];
-    $machineToHuman['subjectdistancerange'] = [
-      '0' => t('Unknown'),
-      '1' => t('Macro'),
-      '2' => t('Close'),
-      '3' => t('Distant'),
-    ];
-    $machineToHuman['uncompressed'] = [
-      '0' => t('No'),
-      '1' => t('Yes'),
-    ];
-    $machineToHuman['whitebalance'] = [
-      '0' => t('Auto'),
-      '1' => t('Manual'),
-    ];
-    return $machineToHuman;
-
-  }
-
 
 }
