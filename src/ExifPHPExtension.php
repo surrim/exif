@@ -27,7 +27,7 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   public static function getMetadataSections() {
-    $sections = array(
+    $sections = [
       'exif',
       'file',
       'computed',
@@ -35,8 +35,8 @@ Class ExifPHPExtension implements ExifInterface {
       'gps',
       'winxp',
       'iptc',
-      'xmp'
-    );
+      'xmp',
+    ];
     return $sections;
   }
 
@@ -49,24 +49,27 @@ Class ExifPHPExtension implements ExifInterface {
    * tag to read
    *
    * @param $arCckFields array of CCK fields
+   *
    * @return array a list of exif tags to read for this image
    */
-  public function getMetadataFields($arCckFields = array()) {
+  public function getMetadataFields($arCckFields = []) {
     $arSections = self::getMetadataSections();
     foreach ($arCckFields as $drupal_field => $metadata_settings) {
       $metadata_field = $metadata_settings['metadata_field'];
       $ar = explode("_", $metadata_field);
-      if (isset($ar[0]) && (in_array($ar[0], $arSections) || $ar[0]=='all')) {
+      if (isset($ar[0]) && (in_array($ar[0], $arSections) || $ar[0] == 'all')) {
         $section = $ar[0];
         unset($ar[0]);
-        $arCckFields[$drupal_field]['metadata_field'] = array(
+        $arCckFields[$drupal_field]['metadata_field'] = [
           'section' => $section,
-          'tag' => implode("_", $ar)
-        );
-      } else {
+          'tag' => implode("_", $ar),
+        ];
+      }
+      else {
         //remove from the list a non usable description.
         unset($arCckFields[$drupal_field]);
-        Drupal::logger('exif')->warning(t("not able to understand exif field settings ") . $metadata_field);
+        Drupal::logger('exif')
+          ->warning(t("not able to understand exif field settings ") . $metadata_field);
       }
     }
     return $arCckFields;
@@ -109,9 +112,14 @@ Class ExifPHPExtension implements ExifInterface {
         switch ($key) {
           // String values.
           case 'usercomment':
+          case 'title':
+          case 'comment':
+          case 'author':
+          case 'subject':
             if ($this->startswith($value, 'UNICODE')) {
               $value = substr($value, 8);
             }
+            $value = $this->_exif_reencode_to_utf8($value);
             break;
           // Date values.
           case 'filedatetime':
@@ -246,7 +254,7 @@ Class ExifPHPExtension implements ExifInterface {
    */
   function _exif_reformat_DMS2D($value, $ref) {
     if (!is_array($value)) {
-      $value = array($value);
+      $value = [$value];
     }
     $dec = 0;
     $granularity = 0;
@@ -265,10 +273,10 @@ Class ExifPHPExtension implements ExifInterface {
    * Helper function to remove empty iptc keywords
    */
   function _del_empty_iptc_keywords($data) {
-    if (!in_array('', $data, true)) {
+    if (!in_array('', $data, TRUE)) {
       return $data;
     }
-    foreach ($data as $key=>$value) {
+    foreach ($data as $key => $value) {
       if (empty($value)) {
         unset($data[$key]);
       }
@@ -279,13 +287,15 @@ Class ExifPHPExtension implements ExifInterface {
   /**
    * $arOptions liste of options for the method :
    * # enable_sections : (default : TRUE) retrieve also sections.
+   *
    * @param string $file
    * @param boolean $enable_sections
+   *
    * @return array $data
    */
   public function readMetadataTags($file, $enable_sections = TRUE) {
     if (!file_exists($file)) {
-      return array();
+      return [];
     }
     $data1 = $this->readExifTags($file, $enable_sections);
     $data2 = $this->readIPTCTags($file, $enable_sections);
@@ -301,7 +311,7 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   function filterMetadataTags($arSmallMetadata, $arTagNames) {
-    $info = array();
+    $info = [];
     foreach ($arTagNames as $drupal_field => $metadata_settings) {
       $tagName = $metadata_settings['metadata_field'];
       if (!empty($arSmallMetadata[$tagName['section']][$tagName['tag']])) {
@@ -312,28 +322,32 @@ Class ExifPHPExtension implements ExifInterface {
   }
 
   /**
-   * Read the Information from a picture according to the fields specified in CCK
+   * Read the Information from a picture according to the fields specified in
+   * CCK
+   *
    * @param $file
    * @param $enable_sections
+   *
    * @return array
    */
   public function readExifTags($file, $enable_sections = TRUE) {
-    $ar_supported_types = array('jpg', 'jpeg');
+    $ar_supported_types = ['jpg', 'jpeg'];
     if (!in_array(strtolower($this->getFileType($file)), $ar_supported_types)) {
-      return array();
+      return [];
     }
-    $exif = array();
+    $exif = [];
     try {
       $exif = @exif_read_data($file, 0, $enable_sections);
     } catch (\Exception $e) {
       // Logs a notice
-      Drupal::logger('exif')->warning(t("Error while reading EXIF tags from image."), $e);
+      Drupal::logger('exif')
+        ->warning(t("Error while reading EXIF tags from image."), $e);
     }
-    $arSmallExif = array();
+    $arSmallExif = [];
     foreach ((array) $exif as $key1 => $value1) {
 
       if (is_array($value1)) {
-        $value2 = array();
+        $value2 = [];
         foreach ((array) $value1 as $key3 => $value3) {
           $value[strtolower($key3)] = $value3;
         }
@@ -353,8 +367,8 @@ Class ExifPHPExtension implements ExifInterface {
     return $ending;
   }
 
-  function _checkKeywordString($keyword){
-    return (strpos($keyword[0], ';') !== false) ? explode(';', $keyword[0]) : $keyword;
+  function _checkKeywordString($keyword) {
+    return (strpos($keyword[0], ';') !== FALSE) ? explode(';', $keyword[0]) : $keyword;
   }
 
   /**
@@ -366,12 +380,12 @@ Class ExifPHPExtension implements ExifInterface {
    */
   public function readIPTCTags($file, $enable_sections) {
     $humanReadableKey = $this->getHumanReadableIPTCkey();
-    $infoImage = array();
-    $size = GetImageSize ($file, $infoImage);
-    $iptc = empty($infoImage["APP13"]) ? array() : iptcparse($infoImage["APP13"]);
-    $arSmallIPTC = array();
+    $infoImage = [];
+    $size = GetImageSize($file, $infoImage);
+    $iptc = empty($infoImage["APP13"]) ? [] : iptcparse($infoImage["APP13"]);
+    $arSmallIPTC = [];
     if (is_array($iptc)) {
-      if (array_key_exists('2#025',$iptc)) {
+      if (array_key_exists('2#025', $iptc)) {
         $iptc["2#025"] = $this->_checkKeywordString($iptc["2#025"]);
         $iptc["2#025"] = $this->_del_empty_iptc_keywords($iptc["2#025"]);
       }
@@ -392,7 +406,7 @@ Class ExifPHPExtension implements ExifInterface {
       }
     }
     if ($enable_sections) {
-      return array('iptc' => $arSmallIPTC);
+      return ['iptc' => $arSmallIPTC];
     }
     else {
       return $arSmallIPTC;
@@ -401,7 +415,7 @@ Class ExifPHPExtension implements ExifInterface {
 
 
   public function getHumanReadableExifKeys() {
-    return array(
+    return [
       "file_filename",
       "file_filedatetime",
       "file_filesize",
@@ -765,17 +779,18 @@ Class ExifPHPExtension implements ExifInterface {
       "winxp_gpsaltituderef",
       "winxp_gpsaltitude",
       "winxp_interoperabilityindex",
-      "winxp_interoperabilityversion"
-    );
+      "winxp_interoperabilityversion",
+    ];
   }
 
   /**
    * Just some little helper function to get the iptc fields
+   *
    * @return array
    *
    */
   public function getHumanReadableIPTCkey() {
-    return array(
+    return [
       "2#202" => "object_data_preview_data",
       "2#201" => "object_data_preview_file_format_version",
       "2#200" => "object_data_preview_file_format",
@@ -832,18 +847,18 @@ Class ExifPHPExtension implements ExifInterface {
       "2#004" => "object_attribute_reference",
       "2#003" => "object_type_reference",
       "2#000" => "record_version",
-      "1#090" => "envelope_character_set"
-    );
+      "1#090" => "envelope_character_set",
+    ];
   }
 
   public function getFieldKeys() {
     $exif_keys_temp = $this->getHumanReadableExifKeys();
-    $exif_keys = array();
+    $exif_keys = [];
     foreach ($exif_keys_temp as $value) {
       $exif_keys[$value] = $value;
     }
     $iptc_keys_temp = array_values($this->getHumanReadableIPTCkey());
-    $iptc_keys = array();
+    $iptc_keys = [];
     foreach ($iptc_keys_temp as $value) {
       $current_value = "iptc_" . $value;
       $iptc_keys[$current_value] = $current_value;
@@ -856,12 +871,12 @@ Class ExifPHPExtension implements ExifInterface {
   /**
    * Convert machine tag values to their human-readable descriptions.
    * Sources:
-   * 	http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html
-   * 	http://www.cipa.jp/english/hyoujunka/kikaku/pdf/DC-008-2010_E.pdf
+   *  http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html
+   *  http://www.cipa.jp/english/hyoujunka/kikaku/pdf/DC-008-2010_E.pdf
    */
   public function getHumanReadableDescriptions() {
-    $machineToHuman = array();
-    $machineToHuman['componentsconfiguration'] = array(
+    $machineToHuman = [];
+    $machineToHuman['componentsconfiguration'] = [
       '0' => t('-'),
       '1' => t('Y'),
       '2' => t('Cb'),
@@ -869,8 +884,8 @@ Class ExifPHPExtension implements ExifInterface {
       '4' => t('R'),
       '5' => t('G'),
       '6' => t('B'),
-    );
-    $machineToHuman['compression'] = array(
+    ];
+    $machineToHuman['compression'] = [
       '1' => t('Uncompressed'),
       '2' => t('CCITT 1D'),
       '3' => t('T4/Group 3 Fax'),
@@ -910,19 +925,19 @@ Class ExifPHPExtension implements ExifInterface {
       '34720' => t('Microsoft Document Imaging (MDI) Vector'),
       '65000' => t('Kodak DCR Compressed'),
       '65535' => t('Pentax PEF Compressed'),
-    );
-    $machineToHuman['contrast'] = array(
+    ];
+    $machineToHuman['contrast'] = [
       '0' => t('Normal'),
       '1' => t('Low'),
       '2' => t('High'),
-    );
-    $machineToHuman['exposuremode'] = array(
+    ];
+    $machineToHuman['exposuremode'] = [
       '0' => t('Auto'),
       '1' => t('Manual'),
       '2' => t('Auto bracket'),
-    );
+    ];
     // (the value of 9 is not standard EXIF, but is used by the Canon EOS 7D)
-    $machineToHuman['exposureprogram'] = array(
+    $machineToHuman['exposureprogram'] = [
       '0' => t('Not Defined'),
       '1' => t('Manual'),
       '2' => t('Program AE'),
@@ -933,8 +948,8 @@ Class ExifPHPExtension implements ExifInterface {
       '7' => t('Portrait'),
       '8' => t('Landscape'),
       '9' => t('Bulb'),
-    );
-    $machineToHuman['flash'] = array(
+    ];
+    $machineToHuman['flash'] = [
       '0' => t('Flash did not fire'),
       '1' => t('Flash fired'),
       '5' => t('Strobe return light not detected'),
@@ -957,23 +972,23 @@ Class ExifPHPExtension implements ExifInterface {
       '89' => t('Flash fired, auto mode, red-eye reduction mode'),
       '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
       '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
-    );
+    ];
     // (values 1, 4 and 5 are not standard EXIF)
-    $machineToHuman['focalplaneresolutionunit'] = array(
+    $machineToHuman['focalplaneresolutionunit'] = [
       '1' => t('None'),
       '2' => t('inches'),
       '3' => t('cm'),
       '4' => t('mm'),
       '5' => t('um'),
-    );
-    $machineToHuman['gaincontrol'] = array(
+    ];
+    $machineToHuman['gaincontrol'] = [
       '0' => t('None'),
       '1' => t('Low gain up'),
       '2' => t('High gain up'),
       '3' => t('Low gain down'),
       '4' => t('High gain down'),
-    );
-    $machineToHuman['lightsource'] = array(
+    ];
+    $machineToHuman['lightsource'] = [
       '0' => t('Unknown'),
       '1' => t('Daylight'),
       '2' => t('Fluorescent'),
@@ -996,8 +1011,8 @@ Class ExifPHPExtension implements ExifInterface {
       '23' => t('D50'),
       '24' => t('ISO Studio Tungsten'),
       '255' => t('Other'),
-    );
-    $machineToHuman['meteringmode'] = array(
+    ];
+    $machineToHuman['meteringmode'] = [
       '0' => t('Unknown'),
       '1' => t('Average'),
       '2' => t('Center-weighted average'),
@@ -1006,8 +1021,8 @@ Class ExifPHPExtension implements ExifInterface {
       '5' => t('Multi-segment'),
       '6' => t('Partial'),
       '255' => t('Other'),
-    );
-    $machineToHuman['orientation'] = array(
+    ];
+    $machineToHuman['orientation'] = [
       '1' => t('Horizontal (normal)'),
       '2' => t('Mirror horizontal'),
       '3' => t('Rotate 180'),
@@ -1016,26 +1031,26 @@ Class ExifPHPExtension implements ExifInterface {
       '6' => t('Rotate 90 CW'),
       '7' => t('Mirror horizontal and rotate 90 CW'),
       '8' => t('Rotate 270 CW'),
-    );
+    ];
     // (the value 1 is not standard EXIF)
-    $machineToHuman['resolutionunit'] = array(
+    $machineToHuman['resolutionunit'] = [
       '1' => t('None'),
       '2' => t('inches'),
       '3' => t('cm'),
-    );
-    $machineToHuman['saturation'] = array(
+    ];
+    $machineToHuman['saturation'] = [
       '0' => t('Normal'),
       '1' => t('Low'),
       '2' => t('High'),
-    );
-    $machineToHuman['scenecapturetype'] = array(
+    ];
+    $machineToHuman['scenecapturetype'] = [
       '0' => t('Standard'),
       '1' => t('Landscape'),
       '2' => t('Portrait'),
       '3' => t('Night'),
-    );
+    ];
     // (values 1 and 6 are not standard EXIF)
-    $machineToHuman['sensingmethod'] = array(
+    $machineToHuman['sensingmethod'] = [
       '1' => t('Monochrome area'),
       '2' => t('One-chip color area'),
       '3' => t('Two-chip color area'),
@@ -1044,9 +1059,9 @@ Class ExifPHPExtension implements ExifInterface {
       '6' => t('Monochrome linear'),
       '7' => t('Trilinear'),
       '8' => t('Color sequential linear'),
-    );
+    ];
     // (applies to EXIF:ISO tag)
-    $machineToHuman['sensitivitytype'] = array(
+    $machineToHuman['sensitivitytype'] = [
       '0' => t('Unknown'),
       '1' => t('Standard Output Sensitivity'),
       '2' => t('Recommended Exposure Index'),
@@ -1055,26 +1070,26 @@ Class ExifPHPExtension implements ExifInterface {
       '5' => t('Standard Output Sensitivity and ISO Speed'),
       '6' => t('Recommended Exposure Index and ISO Speed'),
       '7' => t('Standard Output Sensitivity, Recommended Exposure Index and ISO Speed'),
-    );
-    $machineToHuman['sharpness'] = array(
+    ];
+    $machineToHuman['sharpness'] = [
       '0' => t('Normal'),
       '1' => t('Soft'),
       '2' => t('Hard'),
-    );
-    $machineToHuman['subjectdistancerange'] = array(
+    ];
+    $machineToHuman['subjectdistancerange'] = [
       '0' => t('Unknown'),
       '1' => t('Macro'),
       '2' => t('Close'),
       '3' => t('Distant'),
-    );
-    $machineToHuman['uncompressed'] = array(
+    ];
+    $machineToHuman['uncompressed'] = [
       '0' => t('No'),
       '1' => t('Yes'),
-    );
-    $machineToHuman['whitebalance'] = array(
+    ];
+    $machineToHuman['whitebalance'] = [
       '0' => t('Auto'),
       '1' => t('Manual'),
-    );
+    ];
     return $machineToHuman;
 
   }
