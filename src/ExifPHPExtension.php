@@ -218,9 +218,9 @@ class ExifPHPExtension implements ExifInterface {
     $iptc = empty($infoImage["APP13"]) ? [] : iptcparse($infoImage["APP13"]);
     $arSmallIPTC = [];
     if (is_array($iptc)) {
-      if (array_key_exists(IPTC_KEYWORD_KEY, $iptc)) {
-        $iptc[IPTC_KEYWORD_KEY] = $this->checkKeywordString($iptc[IPTC_KEYWORD_KEY]);
-        $iptc[IPTC_KEYWORD_KEY] = $this->removeEmptyIptcKeywords($iptc[IPTC_KEYWORD_KEY]);
+      if (array_key_exists(ExifPHPExtension::IPTC_KEYWORD_KEY, $iptc)) {
+        $iptc[ExifPHPExtension::IPTC_KEYWORD_KEY] = $this->checkKeywordString($iptc[ExifPHPExtension::IPTC_KEYWORD_KEY]);
+        $iptc[ExifPHPExtension::IPTC_KEYWORD_KEY] = $this->removeEmptyIptcKeywords($iptc[ExifPHPExtension::IPTC_KEYWORD_KEY]);
       }
       foreach ($iptc as $key => $value) {
         if (count($value) == 1) {
