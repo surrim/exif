@@ -3,6 +3,7 @@
 namespace Drupal\exif\Controller;
 
 use Drupal;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -29,11 +30,13 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   /**
    * Constructs the ExifSettingsForm object.
    *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The configuration factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity manager.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
-    ConfigFormBase::__construct();
+  public function __construct(ConfigFactoryInterface $configFactory, EntityTypeManagerInterface $entity_type_manager) {
+    ConfigFormBase::__construct($configFactory);
     $this->entityTypeManager = $entity_type_manager;
   }
 
@@ -42,6 +45,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('config.factory'),
       $container->get('entity.manager')
     );
   }
