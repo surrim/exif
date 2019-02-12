@@ -333,7 +333,7 @@ class ExifSettingsController extends ControllerBase {
    *   Field name (the real one used internally).
    * @param string $fieldType
    *   Name of the field type to be added.
-   * @param array $fieldWidget
+   * @param string $fieldWidget
    *   Name of the widget to use.
    * @param array $widgetSettings
    *   Settings to set for the widget.
@@ -344,7 +344,7 @@ class ExifSettingsController extends ControllerBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function addFieldToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, array $fieldWidget, array $widgetSettings = [], array $settings = []) {
+  protected function addFieldToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldWidget, array $widgetSettings = [], array $settings = []) {
     $realFieldName = 'field_' . $fieldName;
     $storage = $this->getFieldStorageConfig();
     $field_storage = $storage->load($entity_type . '.' . $realFieldName);
@@ -404,7 +404,7 @@ class ExifSettingsController extends ControllerBase {
    *   Field description (what is show in forms).
    * @param array $fieldSettings
    *   Settings for the field.
-   * @param array $fieldWidget
+   * @param string $fieldWidget
    *   Name of the widget to use.
    * @param array $widgetSettings
    *   Settings to set for the widget.
@@ -416,7 +416,7 @@ class ExifSettingsController extends ControllerBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function entityAddExtraField($entity_type, EntityInterface $type, $fieldName, $fieldLabel, array $fieldSettings, array $fieldWidget, array $widgetSettings) {
+  protected function entityAddExtraField($entity_type, EntityInterface $type, $fieldName, $fieldLabel, array $fieldSettings, $fieldWidget, array $widgetSettings) {
     $machineName = strtolower($fieldName);
     // Add or remove the body field, as needed.
     $storage = $this->getFieldStorageConfig();
@@ -478,7 +478,7 @@ class ExifSettingsController extends ControllerBase {
    *   Name of the field type to be added.
    * @param string $fieldTypeBundle
    *   Name of the bundle to be used.
-   * @param array $fieldWidget
+   * @param string $fieldWidget
    *   Name of the widget to use.
    * @param array $widgetSettings
    *   Settings to set for the widget.
@@ -489,7 +489,7 @@ class ExifSettingsController extends ControllerBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function addReferenceToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldTypeBundle, array $fieldWidget, array $widgetSettings = [], array $settings = []) {
+  protected function addReferenceToEntityType($entity_type, EntityInterface $type, $fieldLabel, $fieldName, $fieldType, $fieldTypeBundle, $fieldWidget, array $widgetSettings = [], array $settings = []) {
     $realFieldName = 'field_' . $fieldName;
     $storage = $this->getFieldStorageConfig();
     $field_storage = $storage->load($entity_type . '.' . $realFieldName);

@@ -94,13 +94,13 @@ class ExifPHPExtension implements ExifInterface {
   /**
    * Encode read value as UTF8 string.
    *
-   * @param array $value
+   * @param string $value
    *   Bytes to encode.
    *
    * @return string
    *   encoded value
    */
-  protected function _exif_reencode_to_utf8(array $value) {
+  protected function _exif_reencode_to_utf8($value) {
     $unicode_list = unpack("v*", $value);
     $result = "";
     foreach ($unicode_list as $key => $value) {
@@ -501,6 +501,8 @@ class ExifPHPExtension implements ExifInterface {
   /**
    * Helper function to know if a substring start a string.
    *
+   * Used internally and in help page (so should be public).
+   *
    * @param string $hay
    *   The string where we look for.
    * @param string $needle
@@ -509,7 +511,7 @@ class ExifPHPExtension implements ExifInterface {
    * @return bool
    *   if condition is valid.
    */
-  private function startswith($hay, $needle) {
+  public function startswith($hay, $needle) {
     return substr($hay, 0, strlen($needle)) === $needle;
   }
 
