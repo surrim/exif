@@ -2,7 +2,6 @@
 
 namespace Drupal\exif\Controller;
 
-use Drupal;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Controller\ControllerBase;
@@ -13,6 +12,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\exif\ExifFactory;
+use Drupal\media\Entity\MediaType;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -152,8 +152,7 @@ class ExifSettingsController extends ControllerBase {
         '%type' => $typeName,
       ]);
 
-    }
-    catch (FieldException $fe) {
+    } catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     drupal_set_message($message);
@@ -180,17 +179,20 @@ class ExifSettingsController extends ControllerBase {
     $machineName = strtolower($typeName);
 
     try {
-
-      if (Drupal::moduleHandler()->moduleExists("media_entity")) {
-        $storage = $this->entityTypeManager()->getStorage($entity_type);
-        $type_definition = $storage->load($machineName);
-        if (!$type_definition) {
-          $type_definition = $storage->create(
-            [
-              'name' => $typeName,
-              'type' => $machineName,
-              'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
-            ]);
+      // Check the module is installed.
+      if (interface_exists('\Drupal\media\MediaInterface')) {
+        if (!($type_definition = MediaType::load($machineName))) {
+          $type_definition = MediaType::create([
+            'id' => $machineName,
+            'label' => $typeName,
+            'description' => 'Use Photography for content where the photo is the main content. You still can have some other information related to the photo itself.',
+            'source' => 'image',
+            'source_configuration' => [
+              'source_field' => 'field_image',
+            ],
+            'field_map' => [],
+            'new_revision' => FALSE,
+          ]);
           $type_definition->save();
         }
 
@@ -224,10 +226,9 @@ class ExifSettingsController extends ControllerBase {
         ]);
       }
       else {
-        $message = 'Nothing done. Media modules not present.';
+        $message = 'Nothing done. Media module is not present.';
       }
-    }
-    catch (FieldException $fe) {
+    } catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     drupal_set_message($message);

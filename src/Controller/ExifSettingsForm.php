@@ -154,14 +154,14 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ];
     }
 
-    if (Drupal::moduleHandler()->moduleExists("media_entity")) {
+    if (interface_exists('\Drupal\media\MediaInterface')) {
       $form['media'] = [
         '#type' => 'details',
         '#title' => t('Media types'),
         '#group' => 'exif',
       ];
 
-      $all_mediatypes = $this->entityTypeManager->getStorage('media_bundle')
+      $all_mediatypes = $this->entityTypeManager->getStorage('media_type')
         ->loadMultiple();
       $all_mt = [];
       foreach ($all_mediatypes as $item) {
