@@ -30,10 +30,13 @@ abstract class ExifWidgetBase extends WidgetBase {
    * Use in settingsForm callback.
    *
    * @param array $element
+   *   A form element array containing basic properties for the widget.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
-   * @param $form
+   *   The current state of the form.
+   * @param array $form
+   *   The form structure where widgets are being attached to.
    */
-  public static function validateImageField(array $element, FormStateInterface $form_state, $form) {
+  public static function validateImageField(array $element, FormStateInterface $form_state, array $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!$elementSettings) {
       $field_storage_definitions = Drupal::getContainer()

@@ -2,37 +2,22 @@
 
 /**
  * @file
- * Installation functions for exif module.
+ * Installation requirements for exif module.
  */
 
-use Drupal\user\RoleInterface;
-
 /**
- * Implementation of hook_install().
- */
-function exif_install() {
-  //variable_set('exif_update',TRUE);
-  user_role_change_permissions(RoleInterface::ANONYMOUS_ID, [
-    'generate lorem ipsum' => TRUE,
-  ]);
-}
-
-/**
- * Implementation of hook_install().
- */
-function exif_uninstall() {
-  //variable_del('exif_update');
-}
-
-/**
- * implementation of hook_requirements
+ * Implements hook_requirements().
  *
- * @param $phase
+ * @param string $phase
+ *   Indicate in which context the hook is called.
+ *
+ * @return array
+ *   requirements
  */
 function exif_requirements($phase) {
   $requirements = [];
   if ($phase == 'runtime' || $phase == 'install') {
-    //needed by EXIF
+    // Needed by EXIF.
     if (!function_exists('mb_convert_encoding')) {
       $requirements['mb_convert_encoding'] = [
         'title' => t('Multibyte library is not available'),

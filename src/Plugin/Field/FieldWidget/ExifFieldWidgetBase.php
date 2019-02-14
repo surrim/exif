@@ -106,7 +106,12 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   }
 
   /**
-   * @return mixed|string|null
+   * Get exif field name associated to this drupal field.
+   *
+   * If none found, use naming convention.
+   *
+   * @return string
+   *   name of the exif field or string 'naming_convention'.
    */
   private function retrieveExifFieldDefaultValue() {
     $result = $this->getSetting('exif_field');
@@ -117,7 +122,10 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   }
 
   /**
-   * @return mixed|string|null
+   * Get separator value from settings.
+   *
+   * @return string
+   *   separator value or empty string.
    */
   private function retrieveExifFieldDefaultSeparatorValue() {
     $result = $this->getSetting('exif_field_separator');
@@ -157,4 +165,3 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   }
 
 }
-

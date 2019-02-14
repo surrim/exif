@@ -100,7 +100,7 @@ class ExifPHPExtension implements ExifInterface {
    * @return string
    *   encoded value
    */
-  protected function _exif_reencode_to_utf8($value) {
+  protected function reEncodeToUtf8($value) {
     $unicode_list = unpack("v*", $value);
     $result = "";
     foreach ($unicode_list as $key => $value) {
@@ -393,7 +393,7 @@ class ExifPHPExtension implements ExifInterface {
             if ($this->startswith($value, 'UNICODE')) {
               $value = substr($value, 8);
             }
-            $value = $this->_exif_reencode_to_utf8($value);
+            $value = $this->reEncodeToUtf8($value);
             break;
 
           // Date values.

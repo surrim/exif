@@ -76,7 +76,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#markup' => t('To have a sample of metadata content, take a look at <a href="/admin/config/media/exif/sample">the sample page</a>.'),
     ];
 
-
     $form['exif'] = [
       '#type' => 'vertical_tabs',
       '#prefix' => '<div class="exif">',
@@ -85,13 +84,11 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => t('If you have not create a media/content type for your photographies') . ', ' . t('take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
     ];
 
-
     $form['global'] = [
       '#type' => 'details',
       '#title' => t('Global Settings'),
       '#group' => 'exif',
     ];
-
 
     $form['global']['granularity'] = [
       '#type' => 'select',
@@ -181,7 +178,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#default_value' => $config->get('mediatypes', []),
       ];
     }
-
 
     $form['global']['update_metadata'] = [
       '#type' => 'checkbox',

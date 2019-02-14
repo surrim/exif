@@ -175,7 +175,7 @@ class SimpleExifToolFacade implements ExifInterface {
     if ($returnCode != 0) {
       $output = "";
       Drupal::logger('exif')
-        ->warning(t("exiftool return an error. can not extract metadata from file " . $file));
+        ->warning(t("exiftool return an error. can not extract metadata from file :file", [':file' => $file]));
     }
     $info = implode("\n", $output);
     return $info;

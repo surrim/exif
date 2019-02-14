@@ -46,7 +46,10 @@ class ExifHelp {
     $output .= '</p>';
     $output .= '<h4 id="create-vocabulary">' . t('Creating vocabularies') . '</h4>';
     $output .= '<p>';
-    $output .= t('Users with sufficient <a href="' . $permissionUrl . '">permissions</a> can create <em>vocabularies</em> through the <a href="' . $taxonomyUrl . '">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion.');
+    $output .= t('Users with sufficient <a href=":permissionUrl">permissions</a> can create <em>vocabularies</em> through the <a href=":taxonomyUrl">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion.', [
+      ':permissionUrl' => $permissionUrl,
+      ':taxonomyUrl' => $taxonomyUrl,
+    ]);
     $output .= t('This module will automatically create in the chosen vocabulary (by default "Photographies\' metadata"), the following structure:');
     $output .= '</p>';
     $output .= '<ul><li>' . t("<em>vocabulary</em>: Photographies'metadata") . '</li>';

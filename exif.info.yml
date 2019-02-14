@@ -7,4 +7,3 @@ description: "Display image metadata (exif and iptc)."
 name: Exif
 package: Media
 type: module
-version: 8.x-1.x-dev

@@ -7,4 +7,3 @@ services:
     class: Drupal\exif\ExifInterface
     # call a method on the specified service
     factory: ['@exif.metadata.reader_factory', getExifInterface]
-

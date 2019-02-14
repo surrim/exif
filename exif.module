@@ -1,24 +1,28 @@
 <?php
 
+/**
+ * @file
+ * Entry point for exif module.
+ */
+
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\exif\ExifContent;
 use Drupal\exif\ExifHelp;
+use Drupal\media\MediaInterface;
 use Drupal\Node\NodeInterface;
 
 /**
- * @author: Jean-Philippe Hautin
- *
- */
-
-/**
  * Implements hook_help().
+ *
+ * Manage the exif help page route.
  */
 function exif_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.exif':
       return ExifHelp::content();
-    default :
+
+    default:
       return NULL;
   }
 }
@@ -46,14 +50,10 @@ function exif_theme() {
   ];
 }
 
-
 /**
- * implementation of hook_entity_presave (drupal 8)
+ * Implements hook_entity_presave().
  *
  * Calculate the value for each metadata field so they can be stored correctly.
- *
- * @param $entity EntityInterface entity to be saved.
- *
  */
 function exif_entity_presave(EntityInterface $entity) {
   $entityType = '';
@@ -62,7 +62,7 @@ function exif_entity_presave(EntityInterface $entity) {
   }
   else {
     if (Drupal::moduleHandler()
-        ->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
+        ->moduleExists("media_entity") && $entity instanceof MediaInterface) {
       $entityType = 'media';
     }
   }
@@ -80,6 +80,9 @@ function exif_entity_presave(EntityInterface $entity) {
   }
 }
 
+/**
+ * Implements hook_entity_create().
+ */
 function exif_entity_create(EntityInterface $entity) {
   $entityType = '';
   if ($entity instanceof NodeInterface) {
@@ -87,7 +90,7 @@ function exif_entity_create(EntityInterface $entity) {
   }
   else {
     if (Drupal::moduleHandler()
-        ->moduleExists("media_entity") && $entity instanceof \Drupal\media_entity\MediaInterface) {
+        ->moduleExists("media_entity") && $entity instanceof MediaInterface) {
       $entityType = 'media';
     }
   }

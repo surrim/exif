@@ -1,11 +1,5 @@
-Exif
-====
-
-README file for the Exif Drupal module.
-
-
-Description
-===========
+INTRODUCTION
+============
 
 The Exif module allows to display Exif metadata on image nodes. Exif is a
 specification for the image file format used by digital cameras.
@@ -29,7 +23,7 @@ At this time, this module supports Exif information only with JPEG files.
 [1] Reference: http://en.wikipedia.org/wiki/Exchangeable_image_file_format
 
 
-Requirements
+REQUIREMENTS
 ============
 
 Drupal 8 with at least node enabled.
@@ -49,24 +43,33 @@ Note that, it has been reported that when using GD, it strips some fields
 Imagemagick seems not to have this limitation and does not strip these fields.
 So Imagemagick is recommended when access to GPS data.
 
-Usage
-=====
+CONFIGURATION
+=============
+
+Create a content type
+---------------------
 
 After installing it you can go to your structure administration page.
 Let's say you have an content type "photography". Go to your
 content settings and add a new type of content 'photography' with default fields.
-Then, add exif fields. For the name of the field you need to follow the following
-naming conventions:
+Then, you can add exif fields. For the name of the field you need to follow some
+naming conventions
 
-Basic Examples
----------------
- #1 field_exif_exposuretime -> this would read the ExposureTime of the image and save it
+Naming convention
+-----------------
+
+ **General rule** is: [field]_[section]_[name]
+ 
+**Here some samples:**
+
+- field_exif_exposuretime -> this would read the ExposureTime of the image and save it
 in this field.
- #2 field_ifd0_datetime ->	this would read the date time (2009:01:23 08:52:43) of the image.
+- field_ifd0_datetime ->	this would read the date time (2009:01:23 08:52:43) of the image.
 as a field_type you can take for example a normal textfield, but also a date field would be
 possible.
 
- **General rule** is: [field]_[section]_[name]
+Sample page
+-----------
 
 Under the exif quickstart (admin/config/media/exif/helper), you can see a list of all
 possible information. These informations are taken from the image "sample.jpg".
@@ -75,31 +78,28 @@ can just replace this image with your own image.
 
 Most used values
 -----------------
-Exif :
-Make
-Model
-ExposureTime
-FocalLength
-ISO
-FNumber
-DateTimeOriginal
-ApertureValue
-Flash
+- Exif
+  - Make
+  - Model
+  - ExposureTime
+  - FocalLength
+  - ISO
+  - FNumber
+  - DateTimeOriginal
+  - ApertureValue
+  - Flash
+  - UserComment
+  - ExposureCompensation
+  - ShutterSpeedValue
+  - ExposureMode
+  - WhiteBalance
+  - GPS*
 
-UserComment
-
-ExposureCompensation
-ShutterSpeedValue
-ExposureMode
-WhiteBalance
-
-GPS*
-
-XMP
-Artist
-Orientation
-ColorMode
-FlashMode
-FlashFired
-Title
-Keywords
+- XMP
+  - Artist
+  - Orientation
+  - ColorMode
+  - FlashMode
+  - FlashFired
+  - Title
+  - Keywords
