@@ -62,7 +62,7 @@ function exif_entity_presave(EntityInterface $entity) {
   }
   else {
     if (Drupal::moduleHandler()
-        ->moduleExists("media_entity") && $entity instanceof MediaInterface) {
+        ->moduleExists("media") && $entity instanceof MediaInterface) {
       $entityType = 'media';
     }
   }
@@ -90,7 +90,7 @@ function exif_entity_create(EntityInterface $entity) {
   }
   else {
     if (Drupal::moduleHandler()
-        ->moduleExists("media_entity") && $entity instanceof MediaInterface) {
+        ->moduleExists("media") && $entity instanceof MediaInterface) {
       $entityType = 'media';
     }
   }
