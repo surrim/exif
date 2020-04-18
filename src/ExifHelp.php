@@ -2,7 +2,7 @@
 
 namespace Drupal\exif;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\HtmlEscapedText;
 use Drupal\Core\Url;
 
 /**
@@ -117,7 +117,7 @@ class ExifHelp {
               }
             }
             else {
-              $resultTag = SafeMarkup::checkPlain($value);
+              $resultTag = new HtmlEscapedText($value);
             }
             $rows[] = [
               'data' => [

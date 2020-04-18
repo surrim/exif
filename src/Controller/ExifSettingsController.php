@@ -87,7 +87,7 @@ class ExifSettingsController extends ControllerBase {
     else {
       $message = $this->t('The  vocabulary photography is already created. nothing to do');
     }
-    drupal_set_message($message);
+    $this->messenger()->addMessage($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
     $response->send();
     exit();
@@ -155,7 +155,7 @@ class ExifSettingsController extends ControllerBase {
     } catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
-    drupal_set_message($message);
+    $this->messenger()->addMessage($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
     $response->send();
     exit();
@@ -231,7 +231,7 @@ class ExifSettingsController extends ControllerBase {
     } catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
-    drupal_set_message($message);
+    $this->messenger()->addMessage($message);
     $response = new RedirectResponse('/admin/config/media/exif/helper');
     $response->send();
     exit();

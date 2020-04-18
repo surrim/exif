@@ -17,6 +17,7 @@ use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
 use Drupal\taxonomy\Entity\Term;
+use Drupal\Core\File\FileSystemInterface;
 
 /**
  * Class ExifContent make link between drupal content and file content.
@@ -389,7 +390,7 @@ class ExifContent {
       $cache_key = md5($uri);
       if (empty($this->localCopiesOfRemoteFiles[$cache_key])) {
         // Create unique local file.
-        if (!($this->localCopiesOfRemoteFiles[$cache_key] = file_unmanaged_copy($uri, 'temporary://exif_' . $cache_key . '_' . basename($uri), FILE_EXISTS_REPLACE))) {
+        if (!($this->localCopiesOfRemoteFiles[$cache_key] = \Drupal::service('file_system')->copy($uri, 'temporary://exif_' . $cache_key . '_' . basename($uri), FileSystemInterface::EXISTS_REPLACE))) {
           // Log error if creating a copy fails - but return an empty array to
           // avoid type collision.
           \Drupal::logger('exif')

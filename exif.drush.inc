@@ -285,7 +285,7 @@ function __drush_exif_list_active_types($entity_types = []) {
  */
 function __drush_exif_node_update($type = '') {
   $query = "SELECT n.nid FROM {node} n WHERE n.type = :type";
-  $result = db_query($query, [':type' => $type]);
+  $result = \Drupal::database()->query($query, [':type' => $type]);
   $count = 0;
   foreach ($result as $record) {
     // Load the node object from the database.
@@ -309,7 +309,7 @@ function __drush_exif_node_update($type = '') {
  */
 function __drush_exif_file_update($type = '') {
   $query = "SELECT n.fid FROM {file_managed} n WHERE n.type = :type";
-  $result = db_query($query, [':type' => $type]);
+  $result = \Drupal::database()->query($query, [':type' => $type]);
   $count = 0;
   foreach ($result as $record) {
     // Load the node object from the database.
@@ -332,7 +332,7 @@ function __drush_exif_file_update($type = '') {
  */
 function __drush_exif_media_update($type = '') {
   $query = "SELECT m.mid FROM {media} m WHERE m.bundle = :type";
-  $result = db_query($query, [':type' => $type]);
+  $result = \Drupal::database()->query($query, [':type' => $type]);
   $count = 0;
   foreach ($result as $record) {
     // Load the media object from the database.
