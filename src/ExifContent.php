@@ -91,6 +91,10 @@ class ExifContent {
         $new_types[] = $type;
       }
     }
+    if (\Drupal::moduleHandler()->moduleExists('photos')) {
+      // Photos module integration.
+      $new_types[] = 'photos_image';
+    }
     return $new_types;
   }
 
@@ -266,7 +270,7 @@ class ExifContent {
    */
   private function getImageFields(FieldableEntityInterface $entity) {
     $result = [];
-    if ($entity->getEntityTypeId() == 'node' or $entity->getEntityTypeId() == 'media') {
+    if ($entity->getEntityTypeId() == 'node' or $entity->getEntityTypeId() == 'media' || $entity->getEntityTypeId() == 'photos_image') {
       foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
         if ($fieldDefinition->getType() == 'image') {
           $result[$fieldName] = $fieldDefinition;
@@ -336,7 +340,7 @@ class ExifContent {
    */
   private function getFileUriAndLanguage(FieldableEntityInterface $entity, $field_image_name) {
     $result = FALSE;
-    if ($entity->getEntityTypeId() == 'node' || $entity->getEntityTypeId() == 'media') {
+    if ($entity->getEntityTypeId() == 'node' || $entity->getEntityTypeId() == 'media' || $entity->getEntityTypeId() == 'photos_image') {
       $image_field_instance = $entity->get($field_image_name);
       if ($image_field_instance instanceof FileFieldItemList) {
         $nbImages = count($image_field_instance->getValue());

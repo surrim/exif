@@ -59,7 +59,7 @@ abstract class ExifWidgetBase extends WidgetBase {
    */
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
-    if ($form['#entity_type'] == "node" || $form['#entity_type'] == "media") {
+    if ($form['#entity_type'] == "node" || $form['#entity_type'] == "media" || $form['#entity_type'] == "photos_image") {
       $image_fields = $this->retrieveImageFieldFromBundle($form['#entity_type'], $form['#bundle']);
       $default_image_value = $this->retrieveImageFieldDefaultValue($element, $image_fields);
       $element['image_field'] = [
