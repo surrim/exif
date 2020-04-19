@@ -1,7 +1,7 @@
 INTRODUCTION
 ============
 
-The Exif module allows to display Exif metadata on image nodes. Exif is a
+The Exif module allows displaying Exif metadata on image nodes. Exif is a
 specification for the image file format used by digital cameras.
 
 The metadata tags defined in the Exif standard cover a broad spectrum including [1]:
@@ -49,11 +49,11 @@ CONFIGURATION
 Create a content type
 ---------------------
 
-After installing it you can go to your structure administration page.
-Let's say you have an content type "photography". Go to your
+After installing it, you can go to your structure administration page.
+Let's say you have a content type "photography". Go to your
 content settings and add a new type of content 'photography' with default fields.
 Then, you can add exif fields. For the name of the field you need to follow some
-naming conventions
+naming conventions.
 
 Naming convention
 -----------------
@@ -72,7 +72,7 @@ Sample page
 -----------
 
 Under the exif quickstart (admin/config/media/exif/helper), you can see a list of all
-possible information. These informations are taken from the image "sample.jpg".
+possible information. The information is retrieved from the image "sample.jpg".
 I may not contain all tags available. If you are looking for some specific tags you
 can just replace this image with your own image.
 
