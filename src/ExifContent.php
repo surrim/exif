@@ -273,7 +273,7 @@ class ExifContent {
     $result = [];
     if ($entity->getEntityTypeId() == 'node' or $entity->getEntityTypeId() == 'media' || $entity->getEntityTypeId() == 'photos_image') {
       foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
-        if ($fieldDefinition->getType() == 'image') {
+        if (in_array($fieldDefinition->getType(), ['image', 'file'])) {
           $result[$fieldName] = $fieldDefinition;
         }
       }

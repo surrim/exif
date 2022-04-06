@@ -137,7 +137,7 @@ abstract class ExifWidgetBase extends WidgetBase {
     $result = [];
     foreach ($fields_of_bundle as $key => $value) {
       if ($value instanceof FieldConfig) {
-        if ($value->getType() == "image" || $value->getType() == "media") {
+        if (in_array($value->getType(), ['image', 'media', 'file'])) {
           $result[$key] = $value->getLabel() . " (" . $key . ")";
         }
       }
