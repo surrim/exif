@@ -118,10 +118,14 @@ class ExifContent {
     $result = [];
     foreach ($entity->getFieldDefinitions() as $fieldName => $fieldDefinition) {
       if ($fieldDefinition instanceof FieldConfigInterface || ($fieldDefinition instanceof BaseFieldDefinition and $fieldName === 'title')) {
-        $settings = \Drupal::entityTypeManager()
+        $settings = NULL;
+        $formDisplay = \Drupal::entityTypeManager()
           ->getStorage('entity_form_display')
           ->load($entityType . '.' . $entity->bundle() . '.default')
-          ->getComponent($fieldName)['settings'];
+          ->getComponent($fieldName);
+        if ($formDisplay) {
+          $settings = $formDisplay['settings'];
+        }
         $exifField = NULL;
         $mediaField = NULL;
         $imageField = NULL;
