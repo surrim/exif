@@ -1,0 +1,26 @@
+{
+  "name": "drupal/exif",
+  "description": "Display image metadata (EXIF and IPTC).",
+  "type": "drupal-module",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "media"
+  ],
+  "homepage": "https://www.drupal.org/project/exif",
+  "authors": [
+    {
+      "name": "See contributors",
+      "homepage": "https://www.drupal.org/node/90667/committers",
+      "role": "Developer"
+    }
+  ],
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/exif",
+    "source": "https://git.drupalcode.org/project/exif",
+    "docs": "https://www.drupal.org/docs/8/modules/exif"
+  },
+  "require": {
+    "drupal/core": "^9"
+  }
+}

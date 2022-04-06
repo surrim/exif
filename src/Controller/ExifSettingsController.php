@@ -244,7 +244,7 @@ class ExifSettingsController extends ControllerBase {
    *   HTML Fragment with a sample image and metadata.
    */
   public function showSample() {
-    $sampleImageFilePath = drupal_get_path('module', 'exif') . '/sample.jpg';
+    $sampleImageFilePath = \Drupal::service('extension.list.module')->getPath('exif') . '/sample.jpg';
     $exif = ExifFactory::getExifInterface();
     $fullmetadata = $exif->readMetadataTags($sampleImageFilePath);
     $html = '<table class="metadata-table"><tbody>';

@@ -15,6 +15,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\Core\File\FileSystemInterface;
@@ -377,9 +378,7 @@ class ExifContent {
   private function getDataFromFileUri(UriItem $file_uri) {
     $uri = $file_uri->getValue()['value'];
 
-    /** @var \Drupal\Core\File\FileSystem $file_system */
-    $file_system = \Drupal::service('file_system');
-    $scheme = $file_system->uriScheme($uri);
+    $scheme = \Drupal::service('stream_wrapper_manager')->getScheme($uri);
 
     // If the file isn't stored locally make a temporary copy to read the
     // metadata from. We just assume that the temporary files are always local,
@@ -405,6 +404,9 @@ class ExifContent {
     }
     // Read the metadata.
     $exif = ExifFactory::getExifInterface();
+
+    /** @var \Drupal\Core\File\FileSystem $file_system */
+    $file_system = \Drupal::service('file_system');
     $fullmetadata = $exif->readMetadataTags($file_system->realpath($uri));
     return $fullmetadata;
   }
@@ -591,7 +593,7 @@ class ExifContent {
       $format = 'exif';
     }
     $dateFormatStorage = Drupal::getContainer()
-      ->get('entity.manager')
+      ->get('entity_type.manager')
       ->getStorage('date_format');
     if ($dateFormatStorage instanceof EntityStorageInterface) {
       // Load format for parsing information from image.
@@ -604,7 +606,7 @@ class ExifContent {
         $date_datetime = DrupalDateTime::createFromFormat($dateFormat->getPattern(), $exif_sanitized_value);
         // Load storage format.
         $storage_format = $field->getFieldDefinition()
-          ->getSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE ? DATETIME_DATE_STORAGE_FORMAT : DATETIME_DATETIME_STORAGE_FORMAT;
+          ->getSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE ? DateTimeItemInterface::DATE_STORAGE_FORMAT : DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
         // Format date to string for storage.
         $value = $date_datetime->format($storage_format);
         // Store value.

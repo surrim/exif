@@ -46,7 +46,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('entity.manager')
+      $container->get('entity_type.manager')
     );
   }
 

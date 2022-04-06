@@ -1,10 +1,9 @@
-configure: exif.config
-core: 8.x
-dependencies:
-  - taxonomy
-  - image
-description: "Display image metadata (exif and iptc)."
 name: Exif
-package: Media
+description: "Display image metadata (exif and iptc)."
+configure: exif.config
 type: module
-core_version_requirement: ^8 || ^9
+package: Media
+core_version_requirement: ^9
+dependencies:
+  - drupal:taxonomy
+  - drupal:image

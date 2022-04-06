@@ -393,7 +393,7 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
         'revision' => 1,
         'status' => TRUE,
         'promote' => 0,
-        'created' => REQUEST_TIME,
+        'created' => \Drupal::time()->getRequestTime(),
         'langcode' => $langcode,
         $field => [
           'target_id' => $file_temp->id(),
@@ -413,7 +413,7 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
         'uid' => $uid,
         'revision' => 1,
         'status' => TRUE,
-        'created' => REQUEST_TIME,
+        'created' => \Drupal::time()->getRequestTime(),
         'langcode' => $langcode,
         $field => [
           'target_id' => $file_temp->id(),
