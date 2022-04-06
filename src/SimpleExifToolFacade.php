@@ -155,20 +155,23 @@ class SimpleExifToolFacade implements ExifInterface {
    *   ExifTool JSON result containing all metadata.
    */
   private function runTool($file, $enable_sections = TRUE, $enable_markerNote = FALSE, $enable_non_supported_tags = FALSE) {
-    $params = "";
+    $params = ' -E -n -json ';
     if ($enable_sections) {
-      $params = "-g -struct ";
+      $params .= '-g -struct ';
     }
     if ($enable_markerNote) {
-      $params = $params . "-fast ";
+      $params .= '-fast ';
     }
     else {
-      $params = $params . "-fast2 ";
+      $params .= '-fast2 ';
     }
     if ($enable_non_supported_tags) {
-      $params = $params . " -u -U";
+      $params .= '-u -U ';
     }
-    $commandline = self::getExecutable() . " -E -n -json " . $params . "\"" . $file . "\"";
+    // Escape all of the arguments passed to the function.
+    // Note: If params is expanded so it is customizable, make sure that each
+    // piece is passed through escapeshellarg().
+    $commandline = escapeshellcmd(self::getExecutable() . $params . escapeshellarg($file));
     $output = [];
     $returnCode = 0;
     exec($commandline, $output, $returnCode);
