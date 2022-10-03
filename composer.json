@@ -21,6 +21,6 @@
     "docs": "https://www.drupal.org/docs/8/modules/exif"
   },
   "require": {
-    "drupal/core": "^9"
+    "drupal/core": "^9 || ^10"
   }
 }

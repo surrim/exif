@@ -74,20 +74,20 @@ class ExifContent {
    *   List of bundle where the exif data could be updated.
    */
   private function getBundleForExifData() {
-    $config = Drupal::config('exif.settings');
+    $config = \Drupal::config('exif.settings');
     $new_types = [];
     // Fill up array with checked nodetypes.
-    foreach ($config->get('nodetypes', []) as $type) {
+    foreach ($config->get('nodetypes') as $type) {
       if ($type != "0") {
         $new_types[] = $type;
       }
     }
-    foreach ($config->get('mediatypes', []) as $type) {
+    foreach ($config->get('mediatypes') as $type) {
       if ($type != "0") {
         $new_types[] = $type;
       }
     }
-    foreach ($config->get('filetypes', []) as $type) {
+    foreach ($config->get('filetypes') as $type) {
       if ($type != "0") {
         $new_types[] = $type;
       }
@@ -316,16 +316,16 @@ class ExifContent {
       }
       else {
         $images_descriptor = $this->getFileUriAndLanguage($entity, $field_image_name);
-        if ($images_descriptor == FALSE) {
-          $fullmetadata = [];
-        }
-        else {
+        $fullmetadata = [];
+        $language = NULL;
+        if (!empty($images_descriptor)) {
           foreach ($images_descriptor as $index => $image_descriptor) {
             $fullmetadata[$index] = $this->getDataFromFileUri($image_descriptor['uri']);
+            $language = $image_descriptor['language'];
           }
         }
         $result[$field_image_name] = $fullmetadata;
-        $ar_exif_fields[$drupal_field]['language'] = $image_descriptor['language'];
+        $ar_exif_fields[$drupal_field]['language'] = $language;
       }
     }
     return $result;
@@ -517,21 +517,21 @@ class ExifContent {
     if (!Unicode::validateUtf8($exif_value)) {
       $exif_value = Html::escape(utf8_encode($exif_value));
     }
-    $config = Drupal::config('exif.settings');
+    $config = \Drupal::config('exif.settings');
     $chosen_vocabulary = array_keys($field->getSettings('vocabulary')['handler_settings']['target_bundles'])[0];
-    if (isset($chosen_vocabulary)) {
-      $terms = taxonomy_term_load_multiple_by_name($exif_value, $chosen_vocabulary);
+    if (!empty($chosen_vocabulary)) {
+      $terms = $this->getTermByName($exif_value, $chosen_vocabulary);
       if (is_array($terms) && count($terms) > 0) {
         $term = array_shift($terms);
       }
       else {
         // If not exist, create it and also parents if needed.
-        $terms = taxonomy_term_load_multiple_by_name($exif_name, $chosen_vocabulary);
+        $terms = $this->getTermByName($exif_name, $chosen_vocabulary);
         if (is_array($terms) && count($terms) > 0) {
           $parent_term = array_shift($terms);
         }
         else {
-          $terms = taxonomy_term_load_multiple_by_name($exif_section, $chosen_vocabulary);
+          $terms = $this->getTermByName($exif_section, $chosen_vocabulary);
           if (is_array($terms) && count($terms) > 0) {
             $section_term = array_shift($terms);
           }
@@ -590,14 +590,13 @@ class ExifContent {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function handleDateField($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_sanitized_value) {
-
     if ($exif_name == 'filedatetime') {
       $format = 'atom';
     }
     else {
       $format = 'exif';
     }
-    $dateFormatStorage = Drupal::getContainer()
+    $dateFormatStorage = \Drupal::getContainer()
       ->get('entity_type.manager')
       ->getStorage('date_format');
     if ($dateFormatStorage instanceof EntityStorageInterface) {
@@ -628,6 +627,22 @@ class ExifContent {
     foreach ($this->localCopiesOfRemoteFiles as $uri) {
       \Drupal::service('file_system')->unlink($uri);
     }
+  }
+
+  /**
+   * Get a taxonomy term by its name.
+   *
+   * @param string $term
+   *   The taxonomy term to search for.
+   * @param int $vid
+   *   The vocabulary ID to search.
+   *
+   * @return \Drupal\taxonomy\Entity\Term|null
+   *   The taxonomy term.
+   */
+  protected function getTermByName($term, $vid) {
+    return \Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')
+      ->loadByProperties(['name' => $term, 'vid' => $vid]);
   }
 
 }

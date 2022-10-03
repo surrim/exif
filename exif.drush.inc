@@ -1,13 +1,13 @@
 <?php
 
-use Drupal\Core\File\FileSystemInterface;
 /**
  * @file
  * Drush extension allowing to run some tasks related to exif.
  */
 
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
-use Drupal\media_entity\Entity\Media;
+use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 
 const ENTITY_TYPE_SUPPORTED = ['file', 'media', 'node'];
@@ -71,10 +71,10 @@ function exif_drush_help($section) {
 function drush_exif_list($entity_type = '') {
   $entity_types = __check_entity_type($entity_type);
   $types = __drush_exif_list_active_types($entity_types);
-  drush_log(dt('listing %count content types.', ['%count' => count($types)]), 'ok');
+  \Drupal::logger(dt('listing %count content types.', ['%count' => count($types)]));
   foreach ($types as $type) {
     $params = ['%entity' => $type['entity'], '%type' => $type['type']];
-    drush_log(dt('  * %entity, %type', $params), 'ok');
+    \Drupal::logger(dt('  * %entity, %type', $params));
   }
 }
 
@@ -84,15 +84,15 @@ function drush_exif_list($entity_type = '') {
 function drush_exif_update($entity_type = '', $type = '') {
   $entity_types = __check_entity_type($entity_type);
   if (count($entity_types) == 0) {
-    drush_log(dt('invalid entity type %type.', ['%type' => $entity_type]), "error");
+    \Drupal::logger(dt('invalid entity type %type.', ['%type' => $entity_type]));
     return;
   }
   $selected_types = __check_bundle($entity_types, $type);
   if (count($selected_types) == 0) {
-    drush_log(dt('invalid type %type.', ['%type' => $type]), "error");
+    \Drupal::logger(dt('invalid type %type.', ['%type' => $type]));
     return;
   }
-  drush_log(dt('Need to update %count types.', ['%count' => count($selected_types)]));
+  \Drupal::logger(dt('Need to update %count types.', ['%count' => count($selected_types)]));
   foreach ($selected_types as $type) {
     if ($type['entity'] == 'node') {
       $count = __drush_exif_node_update($type['type']);
@@ -115,8 +115,8 @@ function drush_exif_update($entity_type = '', $type = '') {
  */
 function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path = NULL, $langcode = NULL) {
   if ($path == NULL or $field == NULL) {
-    drush_log(dt('missing at least one parameter.'), "error");
-    drush_log(dt('usage: drush exif-import <entity type:(file|media|node)> <type> <fieldname for photo> <path to files>'), "error");
+    \Drupal::logger(dt('missing at least one parameter.'));
+    \Drupal::logger(dt('usage: drush exif-import <entity type:(file|media|node)> <type> <fieldname for photo> <path to files>'));
     return;
   }
   // Check path.
@@ -135,7 +135,7 @@ function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path =
     return;
   }
   // Check field.
-  $fields_of_bundle = Drupal::getContainer()
+  $fields_of_bundle = \Drupal::getContainer()
     ->get('entity_field.manager')
     ->getFieldDefinitions($entity_type, $type);
   $selected_field = NULL;
@@ -201,7 +201,7 @@ function __check_entity_type($entity_type = '') {
       $entity_types = ENTITY_TYPE_SUPPORTED;
     }
     else {
-      drush_log(dt('entity %entity is not supported.', ['%entity' => $entity_type]), "error");
+      \Drupal::logger(dt('entity %entity is not supported.', ['%entity' => $entity_type]));
     }
   }
   return $entity_types;
@@ -234,11 +234,11 @@ function __check_bundle($entity_types, $type) {
       }
     }
     if (count($selected_types) == 0) {
-      drush_log(dt('type %type is not in exif active types.', ['%type' => $type]), "error");
-      drush_log(dt('exif active types are  :'), "error");
+      \Drupal::logger(dt('type %type is not in exif active types.', ['%type' => $type]));
+      \Drupal::logger(dt('exif active types are  :'));
       foreach ($types as $type) {
         $params = ['%entity' => $type['entity'], '%type' => $type['type']];
-        drush_log(dt('  * %entity, %type', $params), 'error');
+        \Drupal::logger(dt('  * %entity, %type', $params));
       }
     }
   }
@@ -253,7 +253,7 @@ function __check_bundle($entity_types, $type) {
  * @return array
  */
 function __drush_exif_list_active_types($entity_types = []) {
-  $config = Drupal::configFactory()->get('exif.settings');
+  $config = \Drupal::config('exif.settings');
   $types = [];
   foreach ($entity_types as $entity_type) {
     $exif_entitytypes = $config->get($entity_type . 'types');
@@ -295,10 +295,10 @@ function __drush_exif_node_update($type = '') {
     $node->save();
     $count++;
   }
-  drush_log(dt('Updated %count %type nodes.', [
+  \Drupal::logger(dt('Updated %count %type nodes.', [
     '%count' => $count,
     '%type' => $type,
-  ]), "ok");
+  ]));
   return $count;
 }
 
@@ -319,10 +319,10 @@ function __drush_exif_file_update($type = '') {
     $file->save();
     $count++;
   }
-  drush_log(dt('Updated %count %type files.', [
+  \Drupal::logger(dt('Updated %count %type files.', [
     '%count' => $count,
     '%type' => $type,
-  ]), "ok");
+  ]));
   return $count;
 }
 
@@ -342,10 +342,10 @@ function __drush_exif_media_update($type = '') {
     $media->save();
     $count++;
   }
-  drush_log(dt('Updated %count %type medias.', [
+  \Drupal::logger(dt('Updated %count %type medias.', [
     '%count' => $count,
     '%type' => $type,
-  ]), "ok");
+  ]));
   return $count;
 }
 
@@ -367,11 +367,11 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
   if ($langcode == NULL) {
     $langcode = $languageManager->getDefaultLanguage()->getId();
   }
-  drush_log(dt('start import of %file as %type entity with title "%title"', [
+  \Drupal::logger(dt('start import of %file as %type entity with title "%title"', [
     '%file' => $file,
     '%type' => $type,
     '%title' => $title,
-  ]), "ok");
+  ]));
 
   // Saving file. automatically added to file entity if present.
   $file_content = file_get_contents($file);
@@ -423,26 +423,26 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
 
     }
     if ($attributes == NULL) {
-      drush_log(dt('entity type %entity_type is not supported. %file is not imported.', [
+      \Drupal::logger(dt('entity type %entity_type is not supported. %file is not imported.', [
         '%file' => $file,
         '%entity_type' => $entity_type,
-      ]), "ko");
+      ]));
     }
     else {
       // Load the node object from the database.
       $entity = $entityStorage->create($attributes);
       $entity->save();
-      drush_log(dt('imported %file as %type entity.', [
+      \Drupal::logger(dt('imported %file as %type entity.', [
         '%file' => $file,
         '%type' => $type,
-      ]), "ok");
+      ]));
     }
   }
   else {
-    drush_log(dt('failed to import %file as %type entity.', [
+    \Drupal::logger(dt('failed to import %file as %type entity.', [
       '%file' => $file,
       '%type' => $type,
-    ]), "ko");
+    ]));
   }
 
 }
@@ -451,6 +451,7 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
  * Determine language based on $results.
  */
 function __drush_exif_getlangcode($results) {
+  $langcode = NULL;
   if (isset($results['add_language'])) {
     $langcodes = $results['add_language'];
     $langcode = $langcodes[array_rand($langcodes)];

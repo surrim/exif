@@ -22,8 +22,8 @@ abstract class ExifWidgetBase extends WidgetBase {
    * {@inheritdoc}
    */
   public static function defaultSettings() {
-    return ExifWidgetBase::EXIF_BASE_DEFAULT_SETTINGS +
-      parent::defaultSettings();
+    return ExifWidgetBase::EXIF_BASE_DEFAULT_SETTINGS
+      + parent::defaultSettings();
   }
 
   /**
@@ -41,16 +41,16 @@ abstract class ExifWidgetBase extends WidgetBase {
   public static function validateImageField(array $element, FormStateInterface $form_state, array $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!$elementSettings) {
-      $field_storage_definitions = Drupal::getContainer()
+      $field_storage_definitions = \Drupal::getContainer()
         ->get('entity_field.manager')
         ->getFieldStorageDefinitions($form['#entity_type']);
       $field_storage = $field_storage_definitions[$element['#field_name']];
       if ($field_storage) {
         $args = ['%field' => $field_storage->getName()];
-        $message = $this->t('Field %field must be link to an image field.', $args);
+        $message = t('Field %field must be link to an image field.', $args);
       }
       else {
-        $message = $this->t('Field must be link to an image field.');
+        $message = t('Field must be link to an image field.');
       }
       $form_state->setErrorByName('image_field', $message);
     }
@@ -98,9 +98,10 @@ abstract class ExifWidgetBase extends WidgetBase {
     if (isset($image_field)) {
       $bundle_name = $this->fieldDefinition->getTargetBundle();
       $entity_type = $this->fieldDefinition->getTargetEntityTypeId();
-      $image_field_config = Drupal::getContainer()
+      $image_field_config = \Drupal::getContainer()
         ->get('entity_field.manager')
         ->getFieldDefinitions($entity_type, $bundle_name)[$image_field];
+      $label = $image_field;
       if ($image_field_config instanceof FieldConfig) {
         if ($image_field_config->getType() == "image" || $image_field_config->getType() == "media") {
           $label = $this->t("'@image_linked_label' (id: @image_linked_id)", [
@@ -108,11 +109,10 @@ abstract class ExifWidgetBase extends WidgetBase {
             '@image_linked_id' => $image_field,
           ]);
         }
-        else {
-          $label = $image_field;
-        }
       }
-      $image_field_msg = $this->t("exif will be extracted from image field @image", ['@image' => $label]);
+      $image_field_msg = $this->t("exif will be extracted from image field @image", [
+        '@image' => $label,
+      ]);
     }
     else {
       $image_field_msg = $this->t('No image chosen. field will stay empty.');
@@ -133,7 +133,7 @@ abstract class ExifWidgetBase extends WidgetBase {
    *   Map of all images fields contained in this bundle by key and description.
    */
   protected function retrieveImageFieldFromBundle($entity_type, $bundle_name) {
-    $fields_of_bundle = Drupal::getContainer()
+    $fields_of_bundle = \Drupal::getContainer()
       ->get('entity_field.manager')
       ->getFieldDefinitions($entity_type, $bundle_name);
     $result = [];

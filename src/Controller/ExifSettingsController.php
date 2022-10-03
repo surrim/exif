@@ -30,6 +30,8 @@ class ExifSettingsController extends ControllerBase {
    * @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface
    */
   protected $entityDisplayRepository;
+  protected $bundle;
+  protected $entityTypeId;
 
   /**
    * Constructs a ExifSettingsController object.

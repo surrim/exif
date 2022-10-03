@@ -65,7 +65,7 @@ class ExifPHPExtension implements ExifInterface {
       else {
         // Remove from the list a non usable description.
         unset($arCckFields[$drupal_field]);
-        Drupal::logger('exif')
+        \Drupal::logger('exif')
           ->warning($this->t("not able to understand exif field settings @metadata", ['@metadata' => $metadata_field]));
       }
     }
@@ -164,13 +164,13 @@ class ExifPHPExtension implements ExifInterface {
     }
     catch (\Exception $e) {
       // Logs a notice.
-      Drupal::logger('exif')
+      \Drupal::logger('exif')
         ->warning($this->t("Error while reading EXIF tags from image."), $e);
     }
     $arSmallExif = [];
     foreach ((array) $exif as $key1 => $value1) {
-
       if (is_array($value1)) {
+        $value = [];
         foreach ((array) $value1 as $key3 => $value3) {
           $value[strtolower($key3)] = $value3;
         }
@@ -179,7 +179,6 @@ class ExifPHPExtension implements ExifInterface {
         $value = $value1;
       }
       $arSmallExif[strtolower($key1)] = $value;
-
     }
     return $arSmallExif;
   }
@@ -753,10 +752,10 @@ class ExifPHPExtension implements ExifInterface {
     if ($top > $bottom) {
       // Value > 1.
       if (($top % $bottom) == 0) {
-        $value = ($top / $bottom);
+        $value = (float) $top / (float) $bottom;
       }
       else {
-        $value = round(($top / $bottom), 2);
+        $value = round(((float) $top / (float) $bottom), 2);
       }
     }
     else {
@@ -771,7 +770,7 @@ class ExifPHPExtension implements ExifInterface {
         }
         else {
           if ($top != 0) {
-            $value = '1/' . round(($bottom / $top), 0);
+            $value = '1/' . round(((float) $bottom / (float) $top), 0);
           }
           else {
             $value = '0';

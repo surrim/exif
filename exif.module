@@ -10,7 +10,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\exif\ExifContent;
 use Drupal\exif\ExifHelp;
 use Drupal\media\MediaInterface;
-use Drupal\Node\NodeInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_help().
@@ -67,7 +67,7 @@ function exif_entity_presave(EntityInterface $entity) {
     }
   }
   if ($entityType != '') {
-    $config = Drupal::configFactory()->get('exif.settings');
+    $config = \Drupal::config('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
       $shouldUpdateMetadata = TRUE;
@@ -96,7 +96,7 @@ function exif_entity_create(EntityInterface $entity) {
   }
 
   if ($entityType != '') {
-    $config = Drupal::configFactory()->get('exif.settings');
+    $config = \Drupal::config('exif.settings');
     $shouldUpdateMetadata = $config->get('update_metadata');
     if (!isset($shouldUpdateMetadata)) {
       $shouldUpdateMetadata = TRUE;

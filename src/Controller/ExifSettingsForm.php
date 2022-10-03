@@ -25,7 +25,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
 
@@ -96,7 +96,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#type' => 'select',
       '#title' => $this->t('Granularity'),
       '#options' => [0 => $this->t('Default'), 1 => ('Day')],
-      '#default_value' => $config->get('granularity', 0),
+      '#default_value' => $config->get('granularity'),
       '#description' => $this->t('If a timestamp is selected (for example the date the picture was taken), you can specify here how granular the timestamp should be. If you select default it will just take whatever is available in the picture. If you select Day, the Date saved will look something like 13-12-2008. This can be useful if you want to use some kind of grouping on the data.'),
     ];
 
@@ -120,7 +120,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#type' => 'checkboxes',
       '#title' => $this->t('Nodetypes'),
       '#options' => $all_nt,
-      '#default_value' => $config->get('nodetypes', []),
+      '#default_value' => $config->get('nodetypes'),
       '#description' => $this->t('Select nodetypes which should be checked for iptc & exif data.'),
     ];
 
@@ -142,7 +142,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#type' => 'checkboxes',
         '#title' => $this->t('Filetypes'),
         '#options' => $all_mt,
-        '#default_value' => $config->get('filetypes', []),
+        '#default_value' => $config->get('filetypes'),
         '#description' => $this->t('Select filetypes which should be checked for itpc & exif data.'),
       ];
     }
@@ -170,21 +170,21 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#type' => 'checkboxes',
         '#title' => $this->t('Mediatypes'),
         '#options' => $all_mt,
-        '#default_value' => $config->get('mediatypes', []),
+        '#default_value' => $config->get('mediatypes'),
         '#description' => $this->t('Select mediatypes which should be checked for iptc & exif data.'),
       ];
     }
     else {
       $form['media']['mediatypes'] = [
         '#type' => 'hidden',
-        '#default_value' => $config->get('mediatypes', []),
+        '#default_value' => $config->get('mediatypes'),
       ];
     }
 
     $form['global']['update_metadata'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Refresh on node update'),
-      '#default_value' => $config->get('update_metadata', TRUE),
+      '#default_value' => $config->get('update_metadata'),
       '#description' => $this->t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
     ];
 
@@ -192,21 +192,21 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#type' => 'select',
       '#title' => $this->t('which extraction solution to use on node update'),
       '#options' => ExifFactory::getExtractionSolutions(),
-      '#default_value' => $config->get('extraction_solution', "php_extensions"),
+      '#default_value' => $config->get('extraction_solution'),
       '#description' => $this->t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
     ];
 
     $form['global']['exiftool_location'] = [
       '#type' => 'textfield',
       '#title' => $this->t('location of exiftool binary'),
-      '#default_value' => $config->get('exiftool_location', "exiftool"),
+      '#default_value' => $config->get('exiftool_location'),
       '#description' => $this->t('where is the exiftool binaries (only needed if extraction solution chosen is exiftool)'),
     ];
 
     $form['global']['write_empty_values'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Write empty image data?'),
-      '#default_value' => $config->get('write_empty_values', TRUE),
+      '#default_value' => $config->get('write_empty_values'),
       '#description' => $this->t("If checked all values will be written. So for example if you want to read the creation date from EXIF, but it's not available, it will just write an empty string. If unchecked, empty strings will not be written. This might be the desired behavior, if you have a default value for the CCK field."),
     ];
 
@@ -220,7 +220,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#type' => 'select',
       '#title' => $this->t('Default Vocabulary'),
       '#options' => $all_vocs,
-      '#default_value' => $config->get('vocabulary', []),
+      '#default_value' => $config->get('vocabulary'),
       '#description' => $this->t('Select vocabulary which should be used for iptc & exif data. If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
     ];
     // @todo Check if the media module is install to add automatically

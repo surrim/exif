@@ -29,10 +29,9 @@ class ExifFactory {
    *   configured exif parser
    */
   public static function getExifInterface() {
-    $config = Drupal::configFactory()->get('exif.settings');
+    $config = \Drupal::config('exif.settings');
     $extractionSolution = $config->get('extraction_solution');
-    $useExifToolSimple = $extractionSolution == "simple_exiftool";
-    if (isset($useExifToolSimple) && $useExifToolSimple && SimpleExifToolFacade::checkConfiguration()) {
+    if ($extractionSolution == 'simple_exiftool' && SimpleExifToolFacade::checkConfiguration()) {
       return SimpleExifToolFacade::getInstance();
     }
     else {

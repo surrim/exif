@@ -42,7 +42,7 @@ class SimpleExifToolFacade implements ExifInterface {
    */
   public static function checkConfiguration() {
     $exiftoolLocation = self::getExecutable();
-    return isset($exiftoolLocation) && is_executable($exiftoolLocation);
+    return !empty($exiftoolLocation) && is_executable($exiftoolLocation);
   }
 
   /**
@@ -52,7 +52,7 @@ class SimpleExifToolFacade implements ExifInterface {
    *   path to 'exiftool'.
    */
   private static function getExecutable() {
-    $config = Drupal::configFactory()->get('exif.settings');
+    $config = \Drupal::config('exif.settings');
     return $config->get('exiftool_location');
   }
 
@@ -179,7 +179,7 @@ class SimpleExifToolFacade implements ExifInterface {
     exec($commandline, $output, $returnCode);
     if ($returnCode != 0) {
       $output = "";
-      Drupal::logger('exif')
+      \Drupal::logger('exif')
         ->warning($this->t("exiftool return an error. can not extract metadata from file :file", [':file' => $file]));
     }
     $info = implode("\n", $output);

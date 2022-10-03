@@ -3,7 +3,7 @@ description: "Display image metadata (exif and iptc)."
 configure: exif.config
 type: module
 package: Media
-core_version_requirement: ^9
+core_version_requirement: '^9 || ^10'
 dependencies:
   - drupal:taxonomy
   - drupal:image

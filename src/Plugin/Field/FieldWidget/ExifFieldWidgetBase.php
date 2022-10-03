@@ -39,7 +39,7 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   public static function validateExifField(array $element, FormStateInterface $form_state, array $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!$elementSettings) {
-      $message = $this->t('you must choose at least one method to retrieve image metadata.');
+      $message = t('you must choose at least one method to retrieve image metadata.');
       $form_state->setErrorByName('exif_field', $message);
     }
   }
@@ -55,7 +55,7 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   public static function validateExifFieldSeparator(array $element, FormStateInterface &$form_state) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!empty($elementSettings) && strlen($elementSettings) > 1) {
-      $message = $this->t('the separator is only one character long.');
+      $message = t('the separator is only one character long.');
       $form_state->setErrorByName('exif_field_separator', $message);
     }
   }
