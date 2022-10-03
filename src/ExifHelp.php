@@ -22,8 +22,8 @@ class ExifHelp {
    */
   public static function content() {
     global $base_url;
-    $filepath = drupal_get_path('module', 'exif') . '/sample.jpg';
-    $imageUrl = $base_url . '/' . drupal_get_path('module', 'exif') . '/sample.jpg';
+    $filepath = \Drupal::service('extension.list.module')->getPath('exif') . '/sample.jpg';
+    $imageUrl = $base_url . '/' . \Drupal::service('extension.list.module')->getPath('exif') . '/sample.jpg';
     $taxonomyUrl = Url::fromRoute('entity.taxonomy_vocabulary.collection')
       ->toString();
     $permissionUrl = Url::fromRoute('user.admin_permissions')->toString();

@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Core\File\FileSystemInterface;
 /**
  * @file
  * Drush extension allowing to run some tasks related to exif.
@@ -375,7 +376,7 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
   // Saving file. automatically added to file entity if present.
   $file_content = file_get_contents($file);
   // Saves a file to the specified destination and creates a database entry.
-  $file_temp = file_save_data($file_content, 'public://' . $title, FILE_EXISTS_RENAME);
+  $file_temp = \Drupal::service('file.repository')->writeData($file_content, 'public://' . $title, FileSystemInterface::EXISTS_RENAME);
 
   // If not file entity, create associated element.
   if ($file_temp && $entity_type != 'file') {
