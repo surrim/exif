@@ -581,7 +581,14 @@ class ExifSettingsController extends ControllerBase {
    *   value with HTML Entities.
    */
   protected function sanitizeValue($exif_value) {
-    if (!Unicode::validateUtf8($exif_value)) {
+    if (is_null($exif_value)) {
+      return '';
+    }
+    if (is_array($exif_value)) {
+      $strs = array_map([$this,'sanitizeValue'], $exif_value);
+      return '[' . implode(',', $strs) .']';
+    }
+    elseif (!Unicode::validateUtf8($exif_value)) {
       $exif_value = Html::escape(utf8_encode($exif_value));
     }
     return $exif_value;

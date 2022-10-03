@@ -364,6 +364,9 @@ class ExifPHPExtension implements ExifInterface {
     // Make the key lowercase as field names must be.
     $data = array_change_key_case($data, CASE_LOWER);
     foreach ($data as $key => &$value) {
+      if (is_null($value)) {
+        $value = '';
+      }
       if (is_array($value)) {
         $value = array_change_key_case($value, CASE_LOWER);
         switch ($key) {
@@ -390,7 +393,7 @@ class ExifPHPExtension implements ExifInterface {
           case 'comment':
           case 'author':
           case 'subject':
-            if ($this->startswith($value, 'UNICODE')) {
+            if (self::startswith($value, 'UNICODE')) {
               $value = substr($value, 8);
             }
             $value = $this->reEncodeToUtf8($value);
@@ -509,10 +512,19 @@ class ExifPHPExtension implements ExifInterface {
    *   The string to look for.
    *
    * @return bool
-   *   if condition is valid.
+   *   If condition is valid.
    */
-  public function startswith($hay, $needle) {
-    return substr($hay, 0, strlen($needle)) === $needle;
+  public static function startswith($hay, $needle): bool {
+    if (is_null($hay) || is_null($needle)) {
+      return FALSE;
+    }
+    // PHP 8.
+    elseif (is_callable('str_starts_with')) {
+      return str_starts_with($hay, $needle);
+    }
+    else {
+      return substr($hay, 0, strlen($needle)) === $needle;
+    }
   }
 
   /**
