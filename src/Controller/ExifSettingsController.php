@@ -9,6 +9,9 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityTypeRepositoryInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\exif\ExifFactory;
@@ -34,13 +37,47 @@ class ExifSettingsController extends ControllerBase {
   protected $entityTypeId;
 
   /**
+   * The entity manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
+   * Service that provides helper methods for loading entity types.
+   *
+   * @var \Drupal\Core\Extension\ModuleExtensionList
+   */
+  protected $moduleExtensionList;
+
+  /**
+   * Service that provides a list of available modules.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeRepositoryInterface
+   */
+  protected $repository;
+
+  /**
    * Constructs a ExifSettingsController object.
    *
    * @param \Drupal\Core\Entity\EntityDisplayRepositoryInterface $entity_display_repository
    *   The entity display repository.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $repository
+   *   Service that provides helper methods for loading entity types.
+   * @param \Drupal\Core\Extension\ModuleExtensionList $module_extension_list
+   *   Service that provides helper methods for loading entity types.
    */
-  public function __construct(EntityDisplayRepositoryInterface $entity_display_repository) {
+  public function __construct(EntityDisplayRepositoryInterface $entity_display_repository,
+  EntityTypeManagerInterface $entity_type_manager,
+  EntityTypeRepositoryInterface $repository,
+  ModuleExtensionList $module_extension_list
+  ) {
     $this->entityDisplayRepository = $entity_display_repository;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->repository = $repository;
+    $this->moduleExtensionList = $module_extension_list;
   }
 
   /**
@@ -48,7 +85,10 @@ class ExifSettingsController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_display.repository')
+      $container->get('entity_display.repository'),
+      $container->get('entity_type.manager'),
+      $container->get('entity_type.repository'),
+      $container->get('extension.list.module')
     );
   }
 
@@ -81,7 +121,10 @@ class ExifSettingsController extends ControllerBase {
       "vid" => "photographs_metadata",
       "description" => "information related to photographs",
     ];
-    $voc = Vocabulary::load("photographs_metadata");
+
+    $entity_type = $this->repository->getEntityTypeFromClass(Vocabulary::class);
+    $vocabulary_storage = $this->entityTypeManager->getStorage($entity_type);
+    $voc = $vocabulary_storage->load("photographs_metadata");
     if (!$voc) {
       Vocabulary::create($values)->save();
       $message = $this->t('The  vocabulary photography has been created');
@@ -184,7 +227,9 @@ class ExifSettingsController extends ControllerBase {
     try {
       // Check the module is installed.
       if (interface_exists('\Drupal\media\MediaInterface')) {
-        if (!($type_definition = MediaType::load($machineName))) {
+        $entity_type = $this->repository->getEntityTypeFromClass(MediaType::class);
+        $vocabulary_storage = $this->entityTypeManager->getStorage($entity_type);
+        if (!($type_definition = $vocabulary_storage->load($machineName))) {
           $type_definition = MediaType::create([
             'id' => $machineName,
             'label' => $typeName,
@@ -248,7 +293,7 @@ class ExifSettingsController extends ControllerBase {
    *   HTML Fragment with a sample image and metadata.
    */
   public function showSample() {
-    $sampleImageFilePath = \Drupal::service('extension.list.module')->getPath('exif') . '/sample.jpg';
+    $sampleImageFilePath = $this->moduleExtensionList->getPath('exif') . '/sample.jpg';
     $exif = ExifFactory::getExifInterface();
     $fullmetadata = $exif->readMetadataTags($sampleImageFilePath);
     $html = '<table class="metadata-table"><tbody>';
@@ -439,7 +484,7 @@ class ExifSettingsController extends ControllerBase {
     }
 
     // Assign widget settings for the 'default' form mode.
-    $this->entity_get_form_display($entity_type, $type->id(), 'default')
+    $this->entityGetFormDisplay($entity_type, $type->id(), 'default')
       ->setComponent($machineName, [
         'type' => $fieldWidget,
         'settings' => $widgetSettings,
@@ -447,7 +492,7 @@ class ExifSettingsController extends ControllerBase {
       ->save();
 
     // Assign display settings for the 'default' and 'teaser' view modes.
-    $this->entity_get_display($entity_type, $type->id(), 'default')
+    $this->entityGetDisplay($entity_type, $type->id(), 'default')
       ->setComponent($machineName, [
         'label' => 'hidden',
         'type' => 'text_default',
@@ -458,7 +503,7 @@ class ExifSettingsController extends ControllerBase {
     // might not exist.
     $view_modes = $this->entityDisplayRepository->getViewModes($entity_type);
     if (isset($view_modes['teaser'])) {
-      $this->entity_get_display($entity_type, $type->id(), 'teaser')
+      $this->entityGetDisplay($entity_type, $type->id(), 'teaser')
         ->setComponent($machineName, [
           'label' => 'hidden',
           'type' => 'text_summary_or_trimmed',
@@ -555,7 +600,7 @@ class ExifSettingsController extends ControllerBase {
     // default widget and settings). It stays hidden for other form modes
     // until it is explicitly configured.
     $options = $widget_id ? ['type' => $widget_id] : [];
-    $this->entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
+    $this->entityGetFormDisplay($this->entityTypeId, $this->bundle, 'default')
       ->setComponent($field_name, $options)
       ->save();
   }
@@ -573,17 +618,19 @@ class ExifSettingsController extends ControllerBase {
     // default formatter and settings). It stays hidden for other view
     // modes until it is explicitly configured.
     $options = $formatter_id ? ['type' => $formatter_id] : [];
-    $this->entity_get_display($this->entityTypeId, $this->bundle, 'default')
+    $this->entityGetDisplay($this->entityTypeId, $this->bundle, 'default')
       ->setComponent($field_name, $options)
       ->save();
   }
 
   /**
-   * Implements hook_entity_get_form_display().
+   * Implements entityGetFormDisplay().
    */
-  public function entity_get_form_display($entity_type, $bundle, $form_mode) {
+  public function entityGetFormDisplay($entity_type, $bundle, $form_mode) {
     // Try loading the entity from configuration.
-    $entity_form_display = EntityFormDisplay::load($entity_type . '.' . $bundle . '.' . $form_mode);
+    $entity_type = $this->repository->getEntityTypeFromClass(EntityFormDisplay::class);
+    $storage = $this->entityTypeManager->getStorage($entity_type);
+    $entity_form_display = $storage->load($entity_type . '.' . $bundle . '.' . $form_mode);
 
     // If not found, create a fresh entity object. We do not preemptively create
     // new entity form display configuration entries for each existing entity
@@ -603,11 +650,13 @@ class ExifSettingsController extends ControllerBase {
   }
 
   /**
-   * Implements hook_entity_get_display().
+   * Implements entityGetDisplay().
    */
-  public function entity_get_display($entity_type, $bundle, $view_mode) {
+  public function entityGetDisplay($entity_type, $bundle, $view_mode) {
     // Try loading the display from configuration.
-    $display = EntityViewDisplay::load($entity_type . '.' . $bundle . '.' . $view_mode);
+    $entity_type = $this->repository->getEntityTypeFromClass(EntityViewDisplay::class);
+    $storage = $this->entityTypeManager->getStorage($entity_type);
+    $display = $storage->load($entity_type . '.' . $bundle . '.' . $view_mode);
 
     // If not found, create a fresh display object. We do not preemptively
     // create new entity_view_display configuration entries for each existing

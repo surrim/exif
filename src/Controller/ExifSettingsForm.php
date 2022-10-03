@@ -36,10 +36,20 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    *   The configuration factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler service.
+   * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $repository
+   *   Service that provides helper methods for loading entity types.
    */
-  public function __construct(ConfigFactoryInterface $configFactory, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(ConfigFactoryInterface $configFactory,
+  EntityTypeManagerInterface $entity_type_manager,
+  ModuleHandlerInterface $module_handler,
+  EntityTypeRepositoryInterface $repository
+  ) {
     ConfigFormBase::__construct($configFactory);
     $this->entityTypeManager = $entity_type_manager;
+    $this->moduleHandler = $module_handler;
+    $this->repository = $repository;
   }
 
   /**
@@ -48,7 +58,9 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('module_handler'),
+      $container->get('entity_type.repository')
     );
   }
 

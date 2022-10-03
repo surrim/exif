@@ -107,11 +107,18 @@ function drush_exif_update($entity_type = '', $type = '') {
 }
 
 /**
+ * The drush import.
+ *
  * @param string $entity_type
+ *   The entity type.
  * @param string $type
- * @param null $field
- * @param null $path
- * @param null $langcode
+ *   The type.
+ * @param mixed $field
+ *   The specific field.
+ * @param mixed $path
+ *   The path.
+ * @param mixed $langcode
+ *   The lang code.
  */
 function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path = NULL, $langcode = NULL) {
   if ($path == NULL or $field == NULL) {
@@ -190,6 +197,7 @@ function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path =
  *   Name of the entity type.
  *
  * @return array
+ *   Returns entity types.
  */
 function __check_entity_type($entity_type = '') {
   $entity_types = [];
@@ -211,13 +219,14 @@ function __check_entity_type($entity_type = '') {
  * Look for exif entity types.
  *
  * @param array $entity_types
- *   names of entity_types to check.
+ *   Names of entity_types to check.
  * @param string $type
- *   type to check.
+ *   Type to check.
  *
  * @return array
+ *   Returns an array of the selected types.
  */
-function __check_bundle($entity_types, $type) {
+function __check_bundle(array $entity_types, $type) {
   $types = __drush_exif_list_active_types($entity_types);
   $selected_types = [];
   if ($type === '') {
@@ -303,9 +312,14 @@ function __drush_exif_node_update($type = '') {
 }
 
 /**
+ * The drush file update.
+ *
  * @param string $type
+ *   The type.
  *
  * @return int
+ *   Returns The $count;
+ *
  * @throws \Drupal\Core\Entity\EntityStorageException
  */
 function __drush_exif_file_update($type = '') {
@@ -327,9 +341,13 @@ function __drush_exif_file_update($type = '') {
 }
 
 /**
+ * The drush media update.
+ *
  * @param string $type
+ *   The type.
  *
  * @return int
+ *   Returns $count.
  */
 function __drush_exif_media_update($type = '') {
   $query = "SELECT m.mid FROM {media} m WHERE m.bundle = :type";
@@ -350,12 +368,20 @@ function __drush_exif_media_update($type = '') {
 }
 
 /**
+ * The drush entity.
+ *
  * @param string $entity_type
- * @param $type
- * @param $uid
- * @param $field
- * @param $file
- * @param $langcode
+ *   The entity type.
+ * @param string $type
+ *   The type.
+ * @param int $uid
+ *   The user id.
+ * @param string $field
+ *   The field.
+ * @param mixed $file
+ *   THe file.
+ * @param string $langcode
+ *   The lang code.
  *
  * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
  * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
