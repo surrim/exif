@@ -5,6 +5,8 @@ namespace Drupal\exif\Plugin\migrate\field\d7;
 use Drupal\migrate_drupal\Plugin\migrate\field\FieldPluginBase;
 
 /**
+ * Exif readonly migrate plugin.
+ *
  * @MigrateField(
  *   id = "exif_read_only",
  *   core = {7},

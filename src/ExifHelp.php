@@ -90,7 +90,10 @@ class ExifHelp {
     $output .= '<ul><li>' . t('you choose the autocompletion widget and') . '</li>';
     $output .= '<li>' . t('the chosen Vocabulary exists') . " (" . t('see previous section') . ' <a href="#create-vocabulary">' . t('Creating vocabularies') . '</a>)' . '</li>';
     $output .= '</ul>';
-    $output .= '<b>' . t('Important !') . '</b> : ' . t('Note for iptc and exif fields that have several values (like field iptc "keywords" as an example), ');
+    $output .= '<b>';
+    $output .= t('Important !');
+    $output .= '</b> : ';
+    $output .= t('Note for iptc and exif fields that have several values (like field iptc "keywords" as an example),');
     $output .= t('if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).');
     $output .= '</p>';
     $rows = [];

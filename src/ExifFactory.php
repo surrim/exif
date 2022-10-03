@@ -2,8 +2,6 @@
 
 namespace Drupal\exif;
 
-use Drupal;
-
 /**
  * Class ExifFactory allow to get right implementation.
  *

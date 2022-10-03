@@ -2,8 +2,8 @@
 
 namespace Drupal\exif;
 
-use Drupal;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Class ExifPHPExtension Parser implementation base d on PHP Exif extension.
@@ -14,11 +14,12 @@ class ExifPHPExtension implements ExifInterface {
 
   static private $instance = NULL;
 
+  use StringTranslationTrait;
+
   /**
    * ExifPHPExtension constructor.
    */
-  private function __construct() {
-  }
+  private function __construct() {}
 
   /**
    * Return the singleton.
@@ -65,7 +66,7 @@ class ExifPHPExtension implements ExifInterface {
         // Remove from the list a non usable description.
         unset($arCckFields[$drupal_field]);
         Drupal::logger('exif')
-          ->warning(t("not able to understand exif field settings ") . $metadata_field);
+          ->warning($this->t("not able to understand exif field settings @metadata", ['@metadata' => $metadata_field]));
       }
     }
     return $arCckFields;
@@ -164,7 +165,7 @@ class ExifPHPExtension implements ExifInterface {
     catch (\Exception $e) {
       // Logs a notice.
       Drupal::logger('exif')
-        ->warning(t("Error while reading EXIF tags from image."), $e);
+        ->warning($this->t("Error while reading EXIF tags from image."), $e);
     }
     $arSmallExif = [];
     foreach ((array) $exif as $key1 => $value1) {
@@ -409,7 +410,7 @@ class ExifPHPExtension implements ExifInterface {
             // which will look something like 2004-02-12T15:19:21.
             $date_time = explode(" ", $value);
             $date_time[0] = str_replace(":", "-", $date_time[0]);
-            // TODO
+            // @todo Refactor or remove below code.
             // if (variable_get('exif_granularity', 0) == 1) {
             // $date_time[1] = "00:00:00";.
             // }.
@@ -524,218 +525,218 @@ class ExifPHPExtension implements ExifInterface {
   public function getHumanReadableDescriptions() {
     $machineToHuman = [];
     $machineToHuman['componentsconfiguration'] = [
-      '0' => t('-'),
-      '1' => t('Y'),
-      '2' => t('Cb'),
-      '3' => t('Cr'),
-      '4' => t('R'),
-      '5' => t('G'),
-      '6' => t('B'),
+      '0' => $this->t('-'),
+      '1' => $this->t('Y'),
+      '2' => $this->t('Cb'),
+      '3' => $this->t('Cr'),
+      '4' => $this->t('R'),
+      '5' => $this->t('G'),
+      '6' => $this->t('B'),
     ];
     $machineToHuman['compression'] = [
-      '1' => t('Uncompressed'),
-      '2' => t('CCITT 1D'),
-      '3' => t('T4/Group 3 Fax'),
-      '4' => t('T6/Group 4 Fax'),
-      '5' => t('LZW'),
-      '6' => t('JPEG (old-style)'),
-      '7' => t('JPEG'),
-      '8' => t('Adobe Deflate'),
-      '9' => t('JBIG B&W'),
-      '10' => t('JBIG Color'),
-      '99' => t('JPEG'),
-      '262' => t('Kodak 262'),
-      '32766' => t('Next'),
-      '32767' => t('Sony ARW Compressed'),
-      '32769' => t('Packed RAW'),
-      '32770' => t('Samsung SRW Compressed'),
-      '32771' => t('CCIRLEW'),
-      '32773' => t('PackBits'),
-      '32809' => t('Thunderscan'),
-      '32867' => t('Kodak KDC Compressed'),
-      '32895' => t('IT8CTPAD'),
-      '32896' => t('IT8LW'),
-      '32897' => t('IT8MP'),
-      '32898' => t('IT8BL'),
-      '32908' => t('PixarFilm'),
-      '32909' => t('PixarLog'),
-      '32946' => t('Deflate'),
-      '32947' => t('DCS'),
-      '34661' => t('JBIG'),
-      '34676' => t('SGILog'),
-      '34677' => t('SGILog24'),
-      '34712' => t('JPEG 2000'),
-      '34713' => t('Nikon NEF Compressed'),
-      '34715' => t('JBIG2 TIFF FX'),
-      '34718' => t('Microsoft Document Imaging (MDI) Binary Level Codec'),
-      '34719' => t('Microsoft Document Imaging (MDI) Progressive Transform Codec'),
-      '34720' => t('Microsoft Document Imaging (MDI) Vector'),
-      '65000' => t('Kodak DCR Compressed'),
-      '65535' => t('Pentax PEF Compressed'),
+      '1' => $this->t('Uncompressed'),
+      '2' => $this->t('CCITT 1D'),
+      '3' => $this->t('T4/Group 3 Fax'),
+      '4' => $this->t('T6/Group 4 Fax'),
+      '5' => $this->t('LZW'),
+      '6' => $this->t('JPEG (old-style)'),
+      '7' => $this->t('JPEG'),
+      '8' => $this->t('Adobe Deflate'),
+      '9' => $this->t('JBIG B&W'),
+      '10' => $this->t('JBIG Color'),
+      '99' => $this->t('JPEG'),
+      '262' => $this->t('Kodak 262'),
+      '32766' => $this->t('Next'),
+      '32767' => $this->t('Sony ARW Compressed'),
+      '32769' => $this->t('Packed RAW'),
+      '32770' => $this->t('Samsung SRW Compressed'),
+      '32771' => $this->t('CCIRLEW'),
+      '32773' => $this->t('PackBits'),
+      '32809' => $this->t('Thunderscan'),
+      '32867' => $this->t('Kodak KDC Compressed'),
+      '32895' => $this->t('IT8CTPAD'),
+      '32896' => $this->t('IT8LW'),
+      '32897' => $this->t('IT8MP'),
+      '32898' => $this->t('IT8BL'),
+      '32908' => $this->t('PixarFilm'),
+      '32909' => $this->t('PixarLog'),
+      '32946' => $this->t('Deflate'),
+      '32947' => $this->t('DCS'),
+      '34661' => $this->t('JBIG'),
+      '34676' => $this->t('SGILog'),
+      '34677' => $this->t('SGILog24'),
+      '34712' => $this->t('JPEG 2000'),
+      '34713' => $this->t('Nikon NEF Compressed'),
+      '34715' => $this->t('JBIG2 TIFF FX'),
+      '34718' => $this->t('Microsoft Document Imaging (MDI) Binary Level Codec'),
+      '34719' => $this->t('Microsoft Document Imaging (MDI) Progressive Transform Codec'),
+      '34720' => $this->t('Microsoft Document Imaging (MDI) Vector'),
+      '65000' => $this->t('Kodak DCR Compressed'),
+      '65535' => $this->t('Pentax PEF Compressed'),
     ];
     $machineToHuman['contrast'] = [
-      '0' => t('Normal'),
-      '1' => t('Low'),
-      '2' => t('High'),
+      '0' => $this->t('Normal'),
+      '1' => $this->t('Low'),
+      '2' => $this->t('High'),
     ];
     $machineToHuman['exposuremode'] = [
-      '0' => t('Auto'),
-      '1' => t('Manual'),
-      '2' => t('Auto bracket'),
+      '0' => $this->t('Auto'),
+      '1' => $this->t('Manual'),
+      '2' => $this->t('Auto bracket'),
     ];
     // (the value of 9 is not standard EXIF, but is used by the Canon EOS 7D)
     $machineToHuman['exposureprogram'] = [
-      '0' => t('Not Defined'),
-      '1' => t('Manual'),
-      '2' => t('Program AE'),
-      '3' => t('Aperture-priority AE'),
-      '4' => t('Shutter speed priority AE'),
-      '5' => t('Creative (Slow speed)'),
-      '6' => t('Action (High speed)'),
-      '7' => t('Portrait'),
-      '8' => t('Landscape'),
-      '9' => t('Bulb'),
+      '0' => $this->t('Not Defined'),
+      '1' => $this->t('Manual'),
+      '2' => $this->t('Program AE'),
+      '3' => $this->t('Aperture-priority AE'),
+      '4' => $this->t('Shutter speed priority AE'),
+      '5' => $this->t('Creative (Slow speed)'),
+      '6' => $this->t('Action (High speed)'),
+      '7' => $this->t('Portrait'),
+      '8' => $this->t('Landscape'),
+      '9' => $this->t('Bulb'),
     ];
     $machineToHuman['flash'] = [
-      '0' => t('Flash did not fire'),
-      '1' => t('Flash fired'),
-      '5' => t('Strobe return light not detected'),
-      '7' => t('Strobe return light detected'),
-      '9' => t('Flash fired, compulsory flash mode'),
-      '13' => t('Flash fired, compulsory flash mode, return light not detected'),
-      '15' => t('Flash fired, compulsory flash mode, return light detected'),
-      '16' => t('Flash did not fire, compulsory flash mode'),
-      '24' => t('Flash did not fire, auto mode'),
-      '25' => t('Flash fired, auto mode'),
-      '29' => t('Flash fired, auto mode, return light not detected'),
-      '31' => t('Flash fired, auto mode, return light detected'),
-      '32' => t('No flash function'),
-      '65' => t('Flash fired, red-eye reduction mode'),
-      '69' => t('Flash fired, red-eye reduction mode, return light not detected'),
-      '71' => t('Flash fired, red-eye reduction mode, return light detected'),
-      '73' => t('Flash fired, compulsory flash mode, red-eye reduction mode'),
-      '77' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
-      '79' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
-      '89' => t('Flash fired, auto mode, red-eye reduction mode'),
-      '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
-      '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
+      '0' => $this->t('Flash did not fire'),
+      '1' => $this->t('Flash fired'),
+      '5' => $this->t('Strobe return light not detected'),
+      '7' => $this->t('Strobe return light detected'),
+      '9' => $this->t('Flash fired, compulsory flash mode'),
+      '13' => $this->t('Flash fired, compulsory flash mode, return light not detected'),
+      '15' => $this->t('Flash fired, compulsory flash mode, return light detected'),
+      '16' => $this->t('Flash did not fire, compulsory flash mode'),
+      '24' => $this->t('Flash did not fire, auto mode'),
+      '25' => $this->t('Flash fired, auto mode'),
+      '29' => $this->t('Flash fired, auto mode, return light not detected'),
+      '31' => $this->t('Flash fired, auto mode, return light detected'),
+      '32' => $this->t('No flash function'),
+      '65' => $this->t('Flash fired, red-eye reduction mode'),
+      '69' => $this->t('Flash fired, red-eye reduction mode, return light not detected'),
+      '71' => $this->t('Flash fired, red-eye reduction mode, return light detected'),
+      '73' => $this->t('Flash fired, compulsory flash mode, red-eye reduction mode'),
+      '77' => $this->t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
+      '79' => $this->t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
+      '89' => $this->t('Flash fired, auto mode, red-eye reduction mode'),
+      '93' => $this->t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
+      '95' => $this->t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
     ];
     // (values 1, 4 and 5 are not standard EXIF)
     $machineToHuman['focalplaneresolutionunit'] = [
-      '1' => t('None'),
-      '2' => t('inches'),
-      '3' => t('cm'),
-      '4' => t('mm'),
-      '5' => t('um'),
+      '1' => $this->t('None'),
+      '2' => $this->t('inches'),
+      '3' => $this->t('cm'),
+      '4' => $this->t('mm'),
+      '5' => $this->t('um'),
     ];
     $machineToHuman['gaincontrol'] = [
-      '0' => t('None'),
-      '1' => t('Low gain up'),
-      '2' => t('High gain up'),
-      '3' => t('Low gain down'),
-      '4' => t('High gain down'),
+      '0' => $this->t('None'),
+      '1' => $this->t('Low gain up'),
+      '2' => $this->t('High gain up'),
+      '3' => $this->t('Low gain down'),
+      '4' => $this->t('High gain down'),
     ];
     $machineToHuman['lightsource'] = [
-      '0' => t('Unknown'),
-      '1' => t('Daylight'),
-      '2' => t('Fluorescent'),
-      '3' => t('Tungsten (Incandescent)'),
-      '4' => t('Flash'),
-      '9' => t('Fine Weather'),
-      '10' => t('Cloudy'),
-      '11' => t('Shade'),
-      '12' => t('Daylight Fluorescent'),
-      '13' => t('Day White Fluorescent'),
-      '14' => t('Cool White Fluorescent'),
-      '15' => t('White Fluorescent'),
-      '16' => t('Warm White Fluorescent'),
-      '17' => t('Standard Light A'),
-      '18' => t('Standard Light B'),
-      '19' => t('Standard Light C'),
-      '20' => t('D55'),
-      '21' => t('D65'),
-      '22' => t('D75'),
-      '23' => t('D50'),
-      '24' => t('ISO Studio Tungsten'),
-      '255' => t('Other'),
+      '0' => $this->t('Unknown'),
+      '1' => $this->t('Daylight'),
+      '2' => $this->t('Fluorescent'),
+      '3' => $this->t('Tungsten (Incandescent)'),
+      '4' => $this->t('Flash'),
+      '9' => $this->t('Fine Weather'),
+      '10' => $this->t('Cloudy'),
+      '11' => $this->t('Shade'),
+      '12' => $this->t('Daylight Fluorescent'),
+      '13' => $this->t('Day White Fluorescent'),
+      '14' => $this->t('Cool White Fluorescent'),
+      '15' => $this->t('White Fluorescent'),
+      '16' => $this->t('Warm White Fluorescent'),
+      '17' => $this->t('Standard Light A'),
+      '18' => $this->t('Standard Light B'),
+      '19' => $this->t('Standard Light C'),
+      '20' => $this->t('D55'),
+      '21' => $this->t('D65'),
+      '22' => $this->t('D75'),
+      '23' => $this->t('D50'),
+      '24' => $this->t('ISO Studio Tungsten'),
+      '255' => $this->t('Other'),
     ];
     $machineToHuman['meteringmode'] = [
-      '0' => t('Unknown'),
-      '1' => t('Average'),
-      '2' => t('Center-weighted average'),
-      '3' => t('Spot'),
-      '4' => t('Multi-spot'),
-      '5' => t('Multi-segment'),
-      '6' => t('Partial'),
-      '255' => t('Other'),
+      '0' => $this->t('Unknown'),
+      '1' => $this->t('Average'),
+      '2' => $this->t('Center-weighted average'),
+      '3' => $this->t('Spot'),
+      '4' => $this->t('Multi-spot'),
+      '5' => $this->t('Multi-segment'),
+      '6' => $this->t('Partial'),
+      '255' => $this->t('Other'),
     ];
     $machineToHuman['orientation'] = [
-      '1' => t('Horizontal (normal)'),
-      '2' => t('Mirror horizontal'),
-      '3' => t('Rotate 180'),
-      '4' => t('Mirror vertical'),
-      '5' => t('Mirror horizontal and rotate 270 CW'),
-      '6' => t('Rotate 90 CW'),
-      '7' => t('Mirror horizontal and rotate 90 CW'),
-      '8' => t('Rotate 270 CW'),
+      '1' => $this->t('Horizontal (normal)'),
+      '2' => $this->t('Mirror horizontal'),
+      '3' => $this->t('Rotate 180'),
+      '4' => $this->t('Mirror vertical'),
+      '5' => $this->t('Mirror horizontal and rotate 270 CW'),
+      '6' => $this->t('Rotate 90 CW'),
+      '7' => $this->t('Mirror horizontal and rotate 90 CW'),
+      '8' => $this->t('Rotate 270 CW'),
     ];
     // (the value 1 is not standard EXIF)
     $machineToHuman['resolutionunit'] = [
-      '1' => t('None'),
-      '2' => t('inches'),
-      '3' => t('cm'),
+      '1' => $this->t('None'),
+      '2' => $this->t('inches'),
+      '3' => $this->t('cm'),
     ];
     $machineToHuman['saturation'] = [
-      '0' => t('Normal'),
-      '1' => t('Low'),
-      '2' => t('High'),
+      '0' => $this->t('Normal'),
+      '1' => $this->t('Low'),
+      '2' => $this->t('High'),
     ];
     $machineToHuman['scenecapturetype'] = [
-      '0' => t('Standard'),
-      '1' => t('Landscape'),
-      '2' => t('Portrait'),
-      '3' => t('Night'),
+      '0' => $this->t('Standard'),
+      '1' => $this->t('Landscape'),
+      '2' => $this->t('Portrait'),
+      '3' => $this->t('Night'),
     ];
     // (values 1 and 6 are not standard EXIF)
     $machineToHuman['sensingmethod'] = [
-      '1' => t('Monochrome area'),
-      '2' => t('One-chip color area'),
-      '3' => t('Two-chip color area'),
-      '4' => t('Three-chip color area'),
-      '5' => t('Color sequential area'),
-      '6' => t('Monochrome linear'),
-      '7' => t('Trilinear'),
-      '8' => t('Color sequential linear'),
+      '1' => $this->t('Monochrome area'),
+      '2' => $this->t('One-chip color area'),
+      '3' => $this->t('Two-chip color area'),
+      '4' => $this->t('Three-chip color area'),
+      '5' => $this->t('Color sequential area'),
+      '6' => $this->t('Monochrome linear'),
+      '7' => $this->t('Trilinear'),
+      '8' => $this->t('Color sequential linear'),
     ];
     // (applies to EXIF:ISO tag)
     $machineToHuman['sensitivitytype'] = [
-      '0' => t('Unknown'),
-      '1' => t('Standard Output Sensitivity'),
-      '2' => t('Recommended Exposure Index'),
-      '3' => t('ISO Speed'),
-      '4' => t('Standard Output Sensitivity and Recommended Exposure Index'),
-      '5' => t('Standard Output Sensitivity and ISO Speed'),
-      '6' => t('Recommended Exposure Index and ISO Speed'),
-      '7' => t('Standard Output Sensitivity, Recommended Exposure Index and ISO Speed'),
+      '0' => $this->t('Unknown'),
+      '1' => $this->t('Standard Output Sensitivity'),
+      '2' => $this->t('Recommended Exposure Index'),
+      '3' => $this->t('ISO Speed'),
+      '4' => $this->t('Standard Output Sensitivity and Recommended Exposure Index'),
+      '5' => $this->t('Standard Output Sensitivity and ISO Speed'),
+      '6' => $this->t('Recommended Exposure Index and ISO Speed'),
+      '7' => $this->t('Standard Output Sensitivity, Recommended Exposure Index and ISO Speed'),
     ];
     $machineToHuman['sharpness'] = [
-      '0' => t('Normal'),
-      '1' => t('Soft'),
-      '2' => t('Hard'),
+      '0' => $this->t('Normal'),
+      '1' => $this->t('Soft'),
+      '2' => $this->t('Hard'),
     ];
     $machineToHuman['subjectdistancerange'] = [
-      '0' => t('Unknown'),
-      '1' => t('Macro'),
-      '2' => t('Close'),
-      '3' => t('Distant'),
+      '0' => $this->t('Unknown'),
+      '1' => $this->t('Macro'),
+      '2' => $this->t('Close'),
+      '3' => $this->t('Distant'),
     ];
     $machineToHuman['uncompressed'] = [
-      '0' => t('No'),
-      '1' => t('Yes'),
+      '0' => $this->t('No'),
+      '1' => $this->t('Yes'),
     ];
     $machineToHuman['whitebalance'] = [
-      '0' => t('Auto'),
-      '1' => t('Manual'),
+      '0' => $this->t('Auto'),
+      '1' => $this->t('Manual'),
     ];
     return $machineToHuman;
 

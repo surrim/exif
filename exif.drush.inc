@@ -155,7 +155,7 @@ function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path =
     drush_log(dt('field name %field is not a image field', ['%field' => $field]), "error");
     return;
   }
-  // Find files
+  // Find files.
   $files = [];
   if (is_file($path)) {
     $files[] = $path;
@@ -175,7 +175,7 @@ function drush_exif_import($entity_type = '', $type = '', $field = NULL, $path =
       }
     }
   }
-  // Import
+  // Import.
   drush_log(dt('importing %count files.', ['%count' => count($files)]), "ok");
   foreach ($files as $file) {
     __drush_exif_entity_import($entity_type, $type, 1, $field, $file, $langcode);
@@ -259,7 +259,7 @@ function __drush_exif_list_active_types($entity_types = []) {
     if ($exif_entitytypes == NULL) {
       $exif_entitytypes = [];
     }
-    //fill up array with checked nodetypes
+    // Fill up array with checked nodetypes.
     foreach ($exif_entitytypes as $type) {
       if ($type != "0") {
         $types[] = [
@@ -444,7 +444,6 @@ function __drush_exif_entity_import($entity_type, $type, $uid, $field, $file, $l
     ]), "ko");
   }
 
-
 }
 
 /**
@@ -457,4 +456,3 @@ function __drush_exif_getlangcode($results) {
   }
   return $langcode;
 }
-

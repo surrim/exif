@@ -2,7 +2,7 @@
 
 namespace Drupal\exif;
 
-use Drupal;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Class SimpleExifToolFacade.
@@ -10,6 +10,8 @@ use Drupal;
  * @package Drupal\exif
  */
 class SimpleExifToolFacade implements ExifInterface {
+
+  use StringTranslationTrait;
 
   static private $instance = NULL;
 
@@ -134,7 +136,7 @@ class SimpleExifToolFacade implements ExifInterface {
           break;
       }
       // Logs a notice.
-      \Drupal::logger('exif')->notice(t($errorMessage));
+      \Drupal::logger('exif')->notice($this->t('@error', ['@error' => $errorMessage]));
       return [];
     }
   }
@@ -178,7 +180,7 @@ class SimpleExifToolFacade implements ExifInterface {
     if ($returnCode != 0) {
       $output = "";
       Drupal::logger('exif')
-        ->warning(t("exiftool return an error. can not extract metadata from file :file", [':file' => $file]));
+        ->warning($this->t("exiftool return an error. can not extract metadata from file :file", [':file' => $file]));
     }
     $info = implode("\n", $output);
     return $info;

@@ -2,9 +2,9 @@
 
 namespace Drupal\exif\Plugin\Field\FieldWidget;
 
-use Drupal;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -15,6 +15,8 @@ use Drupal\field\Entity\FieldConfig;
 abstract class ExifWidgetBase extends WidgetBase {
 
   const EXIF_BASE_DEFAULT_SETTINGS = ['image_field' => NULL];
+
+  use StringTranslationTrait;
 
   /**
    * {@inheritdoc}
@@ -45,10 +47,10 @@ abstract class ExifWidgetBase extends WidgetBase {
       $field_storage = $field_storage_definitions[$element['#field_name']];
       if ($field_storage) {
         $args = ['%field' => $field_storage->getName()];
-        $message = t('Field %field must be link to an image field.', $args);
+        $message = $this->t('Field %field must be link to an image field.', $args);
       }
       else {
-        $message = t('Field must be link to an image field.');
+        $message = $this->t('Field must be link to an image field.');
       }
       $form_state->setErrorByName('image_field', $message);
     }
@@ -64,8 +66,8 @@ abstract class ExifWidgetBase extends WidgetBase {
       $default_image_value = $this->retrieveImageFieldDefaultValue($element, $image_fields);
       $element['image_field'] = [
         '#type' => 'radios',
-        '#title' => t('image field to use to retrieve data'),
-        '#description' => t('determine the image used to look for exif and iptc metadata'),
+        '#title' => $this->t('image field to use to retrieve data'),
+        '#description' => $this->t('determine the image used to look for exif and iptc metadata'),
         '#options' => $image_fields,
         '#default_value' => $default_image_value,
         '#element_validate' => [
@@ -101,7 +103,7 @@ abstract class ExifWidgetBase extends WidgetBase {
         ->getFieldDefinitions($entity_type, $bundle_name)[$image_field];
       if ($image_field_config instanceof FieldConfig) {
         if ($image_field_config->getType() == "image" || $image_field_config->getType() == "media") {
-          $label = t("'@image_linked_label' (id: @image_linked_id)", [
+          $label = $this->t("'@image_linked_label' (id: @image_linked_id)", [
             '@image_linked_label' => $image_field_config->getLabel(),
             '@image_linked_id' => $image_field,
           ]);
@@ -110,10 +112,10 @@ abstract class ExifWidgetBase extends WidgetBase {
           $label = $image_field;
         }
       }
-      $image_field_msg = t("exif will be extracted from image field @image", ['@image' => $label]);
+      $image_field_msg = $this->t("exif will be extracted from image field @image", ['@image' => $label]);
     }
     else {
-      $image_field_msg = t('No image chosen. field will stay empty.');
+      $image_field_msg = $this->t('No image chosen. field will stay empty.');
     }
     array_unshift($summary, $image_field_msg);
     return $summary;

@@ -2,7 +2,6 @@
 
 namespace Drupal\exif;
 
-use Drupal;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -297,6 +296,8 @@ class ExifContent {
    * @param $image_fields
    *
    * @return array|bool
+   *   Returns a boolean.
+   *
    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
    */
   private function getImageFieldsMetadata(FieldableEntityInterface $entity, &$ar_exif_fields, $image_fields) {
@@ -388,7 +389,7 @@ class ExifContent {
     // metadata from. We just assume that the temporary files are always local,
     // hard to figure out how to handle this otherwise.
     if (!isset(\Drupal::service('stream_wrapper_manager')
-        ->getWrappers(StreamWrapperInterface::LOCAL)[$scheme])) {
+      ->getWrappers(StreamWrapperInterface::LOCAL)[$scheme])) {
       // Local stream.
       $cache_key = md5($uri);
       if (empty($this->localCopiesOfRemoteFiles[$cache_key])) {
@@ -605,7 +606,7 @@ class ExifContent {
       if ($dateFormat instanceof DateFormat) {
         // Exif internal format do not handle timezone :(
         // Using website timezone instead or default storage if none is defined.
-        // TODO : drupal_get_user_timezone();
+        // @todo drupal_get_user_timezone();
         // Parse string to date following chosen format.
         $date_datetime = DrupalDateTime::createFromFormat($dateFormat->getPattern(), $exif_sanitized_value);
         // Load storage format.

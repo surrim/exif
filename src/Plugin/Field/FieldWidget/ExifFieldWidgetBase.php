@@ -3,6 +3,7 @@
 namespace Drupal\exif\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\exif\ExifFactory;
 
 /**
@@ -12,15 +13,16 @@ use Drupal\exif\ExifFactory;
  */
 abstract class ExifFieldWidgetBase extends ExifWidgetBase {
 
+  use StringTranslationTrait;
+
   /**
    * {@inheritdoc}
    */
   public static function defaultSettings() {
-    return
-      [
-        'exif_field_separator' => '',
-        'exif_field' => 'naming_convention',
-      ]
+    return [
+      'exif_field_separator' => '',
+      'exif_field' => 'naming_convention',
+    ]
       + parent::defaultSettings();
   }
 
@@ -37,7 +39,7 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   public static function validateExifField(array $element, FormStateInterface $form_state, array $form) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!$elementSettings) {
-      $message = t('you must choose at least one method to retrieve image metadata.');
+      $message = $this->t('you must choose at least one method to retrieve image metadata.');
       $form_state->setErrorByName('exif_field', $message);
     }
   }
@@ -53,7 +55,7 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
   public static function validateExifFieldSeparator(array $element, FormStateInterface &$form_state) {
     $elementSettings = $form_state->getValue($element['#parents']);
     if (!empty($elementSettings) && strlen($elementSettings) > 1) {
-      $message = t('the separator is only one character long.');
+      $message = $this->t('the separator is only one character long.');
       $form_state->setErrorByName('exif_field_separator', $message);
     }
   }
@@ -68,8 +70,8 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
     $default_exif_separator_value = $this->retrieveExifFieldDefaultSeparatorValue();
     $element['exif_field'] = [
       '#type' => 'select',
-      '#title' => t('exif field data'),
-      '#description' => t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
+      '#title' => $this->t('exif field data'),
+      '#description' => $this->t('choose to retrieve data from the image field referenced with the selected name or by naming convention.'),
       '#options' => array_merge(['naming_convention' => 'name of the field is used as the exif field name'], $exif_fields),
       '#default_value' => $default_exif_value,
       '#element_validate' => [
@@ -81,8 +83,8 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
     ];
     $element['exif_field_separator'] = [
       '#type' => 'textfield',
-      '#title' => t('exif field separator'),
-      '#description' => t('separator used to split values (if field definition support several values). let it empty if you do not want to split values.'),
+      '#title' => $this->t('exif field separator'),
+      '#description' => $this->t('separator used to split values (if field definition support several values). let it empty if you do not want to split values.'),
       '#default_value' => $default_exif_separator_value,
       '#element_validate' => [
         [
@@ -143,21 +145,21 @@ abstract class ExifFieldWidgetBase extends ExifWidgetBase {
 
     $exif_field_separator = $this->getSetting('exif_field_separator');
     if (isset($exif_field_separator) && strlen($exif_field_separator) == 1) {
-      $exif_field_msg = t("exif value will be split using character separator '@separator'", ['@separator' => $exif_field_separator]);
+      $exif_field_msg = $this->t("exif value will be split using character separator '@separator'", ['@separator' => $exif_field_separator]);
     }
     else {
-      $exif_field_msg = t('exif value will be extracted as one value');
+      $exif_field_msg = $this->t('exif value will be extracted as one value');
     }
     array_unshift($summary, $exif_field_msg);
 
     $exif_field = $this->getSetting('exif_field');
     if (isset($exif_field) && $exif_field != 'naming_convention') {
-      $exif_field_msg = t("exif data will be extracted from image metadata field '@metadata'", ['@metadata' => $exif_field]);
+      $exif_field_msg = $this->t("exif data will be extracted from image metadata field '@metadata'", ['@metadata' => $exif_field]);
     }
     else {
       $fieldname = $this->fieldDefinition->getName();
       $exif_field = str_replace("field_", "", $fieldname);
-      $exif_field_msg = t("Using naming convention. so the exif data will be extracted from image metadata field '@metadata'", ['@metadata' => $exif_field]);
+      $exif_field_msg = $this->t("Using naming convention. so the exif data will be extracted from image metadata field '@metadata'", ['@metadata' => $exif_field]);
     }
     array_unshift($summary, $exif_field_msg);
 

@@ -152,7 +152,8 @@ class ExifSettingsController extends ControllerBase {
         '%type' => $typeName,
       ]);
 
-    } catch (FieldException $fe) {
+    }
+    catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     $this->messenger()->addMessage($message);
@@ -228,7 +229,8 @@ class ExifSettingsController extends ControllerBase {
       else {
         $message = 'Nothing done. Media module is not present.';
       }
-    } catch (FieldException $fe) {
+    }
+    catch (FieldException $fe) {
       $message = $this->t('An unexpected error was thrown during creation : ') . $fe->getMessage();
     }
     $this->messenger()->addMessage($message);
