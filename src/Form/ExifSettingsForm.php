@@ -117,7 +117,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => $this->t('If a timestamp is selected (for example the date the picture was taken), you can specify here how granular the timestamp should be. If you select default it will just take whatever is available in the picture. If you select Day, the Date saved will look something like 13-12-2008. This can be useful if you want to use some kind of grouping on the data.'),
     ];
 
-<<<<<<< HEAD
     $form['fieldname'] = [
       '#type' => 'markup',
       '#value' => "My Value Goes Here",
@@ -199,8 +198,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ];
     }
 
-=======
->>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
     $form['global']['update_metadata'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Refresh metadata on entity update'),
@@ -213,10 +210,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#title' => $this->t('Metadata extraction method'),
       '#options' => ExifFactory::getExtractionSolutions(),
       '#default_value' => $config->get('extraction_solution'),
-<<<<<<< HEAD
-=======
       '#required' => TRUE,
->>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
     ];
 
     $form['global']['exiftool_location'] = [

@@ -14,17 +14,6 @@ exif.sample:
   requirements:
     _permission: "administer image metadata"
 
-<<<<<<< HEAD
-exif.config:
-  path: '/admin/config/media/exif'
-  defaults:
-    _title: 'Image metadata (Exif, IPTC)'
-    _form: '\Drupal\exif\Form\ExifSettingsForm'
-  requirements:
-    _permission: "administer image metadata"
-
-=======
->>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
 exif.helper:
   path: '/admin/config/media/exif/helper'
   defaults:
