@@ -2,28 +2,34 @@
 
 /**
  * @file
- * Entry point for exif module.
+ * Primary hook implementations for the Exif module.
  */
 
+use Drupal\Core\Url;
+use Drupal\exif\ExifHelp;
+use Drupal\exif\ExifContent;
+use Drupal\node\NodeInterface;
+use Drupal\media\MediaInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\exif\ExifContent;
-use Drupal\exif\ExifHelp;
-use Drupal\media\MediaInterface;
-use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_help().
- *
- * Manage the exif help page route.
  */
 function exif_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.exif':
       return ExifHelp::content();
 
-    default:
-      return NULL;
+    // Extra instructional information for the main settings page.
+    case 'exif.config':
+      $output = '<p>' . t('If a media type or content type has not been created for photographs, take a look at <a href=":url">the quick start page</a>.', [
+        ':url' => Url::fromRoute('exif.helper')->toString(),
+        ]) . '</p>';
+      $output .= '<p>' . t('To have a sample of metadata content, take a look at <a href=":url">the sample page</a>.', [
+          ':url' => Url::fromRoute('exif.sample')->toString(),
+        ]) . '</p>';
+      return $output;
   }
 }
 

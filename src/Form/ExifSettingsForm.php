@@ -88,16 +88,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('exif.settings');
 
-    $form['information1'] = [
-      '#type' => 'item',
-      '#markup' => $this->t('If a media type or content type has not been created for photographs, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
-    ];
-
-    $form['information2'] = [
-      '#type' => 'item',
-      '#markup' => $this->t('To have a sample of metadata content, take a look at <a href="/admin/config/media/exif/sample">the sample page</a>.'),
-    ];
-
     $form['exif'] = [
       '#type' => 'vertical_tabs',
       '#title' => $this->t('Image metadata settings'),
