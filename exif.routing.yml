@@ -1,11 +1,3 @@
-exif.sample:
-  path: '/admin/config/media/exif/sample'
-  defaults:
-    _title: "Image Metadata sample page"
-    _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::showSample"
-  requirements:
-    _permission: "administer image metadata"
-
 exif.config:
   path: '/admin/config/media/exif'
   defaults:
@@ -14,6 +6,25 @@ exif.config:
   requirements:
     _permission: "administer image metadata"
 
+exif.sample:
+  path: '/admin/config/media/exif/sample'
+  defaults:
+    _title: "Image Metadata sample page"
+    _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::showSample"
+  requirements:
+    _permission: "administer image metadata"
+
+<<<<<<< HEAD
+exif.config:
+  path: '/admin/config/media/exif'
+  defaults:
+    _title: 'Image metadata (Exif, IPTC)'
+    _form: '\Drupal\exif\Form\ExifSettingsForm'
+  requirements:
+    _permission: "administer image metadata"
+
+=======
+>>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
 exif.helper:
   path: '/admin/config/media/exif/helper'
   defaults:

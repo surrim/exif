@@ -44,10 +44,10 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    *   Service that provides helper methods for loading entity types.
    */
   public function __construct(ConfigFactoryInterface $configFactory,
-  EntityTypeManagerInterface $entity_type_manager,
-  ModuleHandlerInterface $module_handler,
-  EntityTypeRepositoryInterface $repository
-  ) {
+      EntityTypeManagerInterface $entity_type_manager,
+      ModuleHandlerInterface $module_handler,
+      EntityTypeRepositoryInterface $repository
+      ) {
     ConfigFormBase::__construct($configFactory);
     $this->entityTypeManager = $entity_type_manager;
     $this->moduleHandler = $module_handler;
@@ -76,28 +76,31 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  protected function getEditableConfigNames() {
+    return [
+      'exif.settings',
+    ];
+  }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('exif.settings');
 
     $form['information1'] = [
       '#type' => 'item',
-      '#title' => 'Informations',
-      '#markup' => $this->t('If you have not create a media/content type for your photographies, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
+      '#markup' => $this->t('If a media type or content type has not been created for photographs, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
     ];
 
     $form['information2'] = [
       '#type' => 'item',
-      '#title' => '',
       '#markup' => $this->t('To have a sample of metadata content, take a look at <a href="/admin/config/media/exif/sample">the sample page</a>.'),
     ];
 
     $form['exif'] = [
       '#type' => 'vertical_tabs',
-      '#prefix' => '<div class="exif">',
-      '#suffix' => '</div>',
-      '#title' => $this->t('Image Metadata Settings'),
-      '#description' => $this->t('If you have not create a media/content type for your photographies, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
+      '#title' => $this->t('Image metadata settings'),
     ];
 
     $form['global'] = [
@@ -114,6 +117,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => $this->t('If a timestamp is selected (for example the date the picture was taken), you can specify here how granular the timestamp should be. If you select default it will just take whatever is available in the picture. If you select Day, the Date saved will look something like 13-12-2008. This can be useful if you want to use some kind of grouping on the data.'),
     ];
 
+<<<<<<< HEAD
     $form['fieldname'] = [
       '#type' => 'markup',
       '#value' => "My Value Goes Here",
@@ -195,18 +199,24 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ];
     }
 
+=======
+>>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
     $form['global']['update_metadata'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Refresh on node update'),
+      '#title' => $this->t('Refresh metadata on entity update'),
       '#default_value' => $config->get('update_metadata'),
-      '#description' => $this->t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
+      '#description' => $this->t('Files will be scanned when the node or media item they are attached to are initially created. This option will also scan images when the node or media items are updated.'),
     ];
 
     $form['global']['extraction_solution'] = [
       '#type' => 'select',
-      '#title' => $this->t('which extraction solution to use on node update'),
+      '#title' => $this->t('Metadata extraction method'),
       '#options' => ExifFactory::getExtractionSolutions(),
       '#default_value' => $config->get('extraction_solution'),
+<<<<<<< HEAD
+=======
+      '#required' => TRUE,
+>>>>>>> 1eec595 (Issue #3313410 by DamienMcKenna: Settings form improvements.)
     ];
 
     $form['global']['exiftool_location'] = [
@@ -230,19 +240,92 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#description' => $this->t("If checked all values will be written. For example, to read the creation date from EXIF, but it's not available, it will just write an empty string. If unchecked, empty strings will not be written. This might be the desired behavior, if you have a default value for the CCK field."),
     ];
 
-    $all_vocabularies = Vocabulary::loadMultiple();
-    $all_vocs = [];
-    $all_vocs[0] = 'None';
-    foreach ($all_vocabularies as $item) {
-      $all_vocs[$item->id()] = $item->label();
+    if ($this->moduleHandler->moduleExists('taxonomy')) {
+      $all_vocs = [];
+      $all_vocs[0] = 'None';
+      foreach (Vocabulary::loadMultiple() as $item) {
+        $all_vocs[$item->id()] = $item->label();
+      }
+      $form['global']['vocabulary'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Default Vocabulary'),
+        '#options' => $all_vocs,
+        '#default_value' => $config->get('vocabulary'),
+        '#description' => $this->t('Select vocabulary which should be used for iptc & exif data. If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
+      ];
     }
-    $form['global']['vocabulary'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Default Vocabulary'),
-      '#options' => $all_vocs,
-      '#default_value' => $config->get('vocabulary'),
-      '#description' => $this->t('Select vocabulary which should be used for iptc & exif data. If you think no vocabulary is usable for the purpose, take a look at <a href="/admin/config/media/exif/helper">the quick start page</a>.'),
-    ];
+
+    if ($this->moduleHandler->moduleExists('node')) {
+      $all_nodetypes = $this->entityTypeManager->getStorage('node_type')
+        ->loadMultiple();
+
+      // List all content types.
+      $all_types = [];
+      foreach ($all_nodetypes as $item) {
+        $all_types[$item->id()] = $item->label();
+      }
+      if (!empty($all_types)) {
+        $form['node'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Content types'),
+          '#group' => 'exif',
+        ];
+        $form['node']['nodetypes'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Content types'),
+          '#options' => $all_types,
+          '#default_value' => $config->get('nodetypes'),
+          '#description' => $this->t('Select content types which should be checked for IPTC & Exif data.'),
+        ];
+      }
+    }
+
+    // The old way (still in use so keep it).
+    if ($this->moduleHandler->moduleExists('file_entity')) {
+      // List all file types.
+      $all_types = [];
+      foreach (FileType::loadEnabled() as $item) {
+        $all_types[$item->id()] = $item->label();
+      }
+      if (!empty($all_types)) {
+        $form['file'] = [
+          '#type' => 'details',
+          '#title' => $this->t('File types'),
+          '#group' => 'exif',
+        ];
+        $form['file']['filetypes'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('File types'),
+          '#options' => $all_types,
+          '#default_value' => $config->get('filetypes'),
+          '#description' => $this->t('Select file types which should be checked for Exif & ITPC data.'),
+        ];
+      }
+    }
+
+    if ($this->moduleHandler->moduleExists('media')) {
+      $all_mediatypes = $this->entityTypeManager->getStorage('media_type')
+        ->loadMultiple();
+      $all_types = [];
+      foreach ($all_mediatypes as $item) {
+        $all_types[$item->id()] = $item->label();
+      }
+      if (!empty($all_types)) {
+        $form['media'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Media types'),
+          '#group' => 'exif',
+        ];
+        $form['media']['mediatypes'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Media types'),
+          '#options' => $all_types,
+          '#default_value' => $config->get('mediatypes'),
+          '#description' => $this->t('Select media types which should be checked for IPTC & Exif data.'),
+        ];
+      }
+    }
+
     // @todo Check if the media module is install to add automatically
     // @todo the image type active and add active default exif field.
     return parent::buildForm($form, $form_state);
@@ -262,7 +345,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-
     foreach (['nodetypes', 'filetypes', 'mediatypes'] as $entity_type) {
       $value = $form_state->getValue($entity_type);
       if (empty($value)) {
@@ -274,7 +356,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
     $this->config('exif.settings')
       ->set('update_metadata', $form_state->getValue('update_metadata', TRUE))
       ->set('write_empty_values', $form_state->getValue('write_empty_values', FALSE))
-      ->set('vocabulary', $form_state->getValue('vocabulary', "0"))
+      ->set('vocabulary', $form_state->getValue('vocabulary', 0))
       ->set('granularity', $form_state->getValue('granularity'))
       ->set('date_format_exif', $form_state->getValue('date_format_exif'))
       ->set('extraction_solution', $form_state->getValue('extraction_solution'))
@@ -282,15 +364,6 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ->save();
 
     parent::submitForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getEditableConfigNames() {
-    return [
-      'exif.settings',
-    ];
   }
 
 }

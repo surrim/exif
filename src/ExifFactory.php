@@ -5,6 +5,8 @@ namespace Drupal\exif;
 /**
  * Class ExifFactory allow to get right implementation.
  *
+ * @todo Rewrite this as a plugin system.
+ *
  * @package Drupal\exif
  */
 class ExifFactory {
@@ -17,8 +19,8 @@ class ExifFactory {
    */
   public static function getExtractionSolutions() {
     return [
-      "simple_exiftool" => "exiftool",
-      "php_extensions" => "php extensions",
+      'php_extensions' => 'php extensions',
+      'simple_exiftool' => 'exiftool',
     ];
   }
 
