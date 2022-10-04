@@ -2,10 +2,13 @@
 
 namespace Drupal\exif\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\field\Entity\FieldConfig;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Base class for 'Exif Field widget' plugin implementations.

@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\exif\Controller;
+namespace Drupal\exif\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -12,6 +12,8 @@ use Drupal\exif\ExifFactory;
 use Drupal\file_entity\Entity\FileType;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\EntityTypeRepositoryInterface;
 
 /**
  * Manage Settings forms.
@@ -155,7 +157,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#title' => $this->t('Filetypes'),
         '#options' => $all_mt,
         '#default_value' => $config->get('filetypes'),
-        '#description' => $this->t('Select filetypes which should be checked for itpc & exif data.'),
+        '#description' => $this->t('Select filetypes which should be checked for Exif & ITPC data.'),
       ];
     }
     else {
@@ -165,7 +167,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       ];
     }
 
-    if (interface_exists('\Drupal\media\MediaInterface')) {
+    if (\Drupal::moduleHandler()->moduleExists("media")) {
       $form['media'] = [
         '#type' => 'details',
         '#title' => $this->t('Media types'),
@@ -183,7 +185,7 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
         '#title' => $this->t('Mediatypes'),
         '#options' => $all_mt,
         '#default_value' => $config->get('mediatypes'),
-        '#description' => $this->t('Select mediatypes which should be checked for iptc & exif data.'),
+        '#description' => $this->t('Select mediatypes which should be checked for IPTC & Exif data.'),
       ];
     }
     else {
@@ -205,21 +207,27 @@ class ExifSettingsForm extends ConfigFormBase implements ContainerInjectionInter
       '#title' => $this->t('which extraction solution to use on node update'),
       '#options' => ExifFactory::getExtractionSolutions(),
       '#default_value' => $config->get('extraction_solution'),
-      '#description' => $this->t('If media/exif enable this option, Exif data is being updated when the node is being updated.'),
     ];
 
     $form['global']['exiftool_location'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('location of exiftool binary'),
+      '#title' => $this->t('Location of exiftool binary'),
       '#default_value' => $config->get('exiftool_location'),
-      '#description' => $this->t('where is the exiftool binaries (only needed if extraction solution chosen is exiftool)'),
+      '#description' => $this->t('The system path to the exiftool binary.'),
+      '#states' => [
+        'visible' => [
+          ':input[name="extraction_solution"]' => [
+            'value' => 'simple_exiftool',
+          ],
+        ],
+      ],
     ];
 
     $form['global']['write_empty_values'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Write empty image data?'),
       '#default_value' => $config->get('write_empty_values'),
-      '#description' => $this->t("If checked all values will be written. So for example if you want to read the creation date from EXIF, but it's not available, it will just write an empty string. If unchecked, empty strings will not be written. This might be the desired behavior, if you have a default value for the CCK field."),
+      '#description' => $this->t("If checked all values will be written. For example, to read the creation date from EXIF, but it's not available, it will just write an empty string. If unchecked, empty strings will not be written. This might be the desired behavior, if you have a default value for the CCK field."),
     ];
 
     $all_vocabularies = Vocabulary::loadMultiple();

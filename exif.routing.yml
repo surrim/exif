@@ -9,11 +9,10 @@ exif.sample:
 exif.config:
   path: '/admin/config/media/exif'
   defaults:
-    _title: 'Image metadata'
-    _form: '\Drupal\exif\Controller\ExifSettingsForm'
+    _title: 'Image metadata (Exif, IPTC)'
+    _form: '\Drupal\exif\Form\ExifSettingsForm'
   requirements:
     _permission: "administer image metadata"
-
 
 exif.helper:
   path: '/admin/config/media/exif/helper'
@@ -23,8 +22,6 @@ exif.helper:
   requirements:
     _permission: "administer image metadata"
 
-
-
 exif.helper.vocabulary:
   path: '/admin/config/media/exif/helper/vocabulary'
   defaults:
@@ -33,7 +30,6 @@ exif.helper.vocabulary:
   requirements:
     _permission: "administer image metadata"
 
-
 exif.helper.nodetype:
   path: '/admin/config/media/exif/helper/nodetype'
   defaults:
@@ -41,7 +37,6 @@ exif.helper.nodetype:
     _controller: "\\Drupal\\exif\\Controller\\ExifSettingsController::createPhotographyNodeType"
   requirements:
     _permission: "administer image metadata"
-
 
 exif.helper.mediatype:
   path: '/admin/config/media/exif/helper/mediatype'

@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @FieldWidget(
  *   id = "exif_readonly",
- *   label = @Translation("metadata from image (viewable in forms)"),
+ *   label = @Translation("Metadata from image (viewable in forms)"),
  *   description = @Translation("field content is calculated from image field
  *   in the same content type (field are viewable but readonly in forms)"),
  *   multiple_values = true, field_types = {

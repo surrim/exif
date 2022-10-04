@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
  *
  * @FieldWidget(
  *   id = "exif_hidden",
- *   label = @Translation("metadata from image (hidden in forms)"),
+ *   label = @Translation("Metadata from image (hidden in forms)"),
  *   description = @Translation("field content is calculated from image field
  *   in the same content type (field are hidden from forms)"), multiple_values
  *   = true, field_types = {

@@ -13,7 +13,7 @@ class ExifFactory {
    * Return description of exif parser implementations.
    *
    * @return array
-   *   list names of parser implementations
+   *   List names of parser implementations
    */
   public static function getExtractionSolutions() {
     return [
@@ -26,7 +26,7 @@ class ExifFactory {
    * Return configured exif parser.
    *
    * @return \Drupal\exif\ExifInterface
-   *   configured exif parser
+   *   cCnfigured exif parser
    */
   public static function getExifInterface() {
     $config = \Drupal::config('exif.settings');

@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
  *
  * @FieldWidget(
  *   id = "exif_html",
- *   label = @Translation("metadata from image as html table"),
+ *   label = @Translation("Metadata from image as HTML table"),
  *   description = @Translation("field content is calculated from image field
  *   in the same content type (field are hidden from forms)"), multiple_values
  *   = true, field_types = {
