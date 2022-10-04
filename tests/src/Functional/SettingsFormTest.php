@@ -58,8 +58,18 @@ class SettingsFormTest extends BrowserTestBase {
     $session_assert->fieldNotExists('filetypes');
     $session_assert->fieldNotExists('mediatypes');
 
-    // Create a content type, reload the form and confirm that the content type
-    // is now available.
+    // Verify the form can submit as-is and nothing breaks.
+    $this->submitForm([], 'Save configuration');
+    $session_assert = $this->assertSession();
+    $session_assert->statusCodeEquals(200);
+    $session_assert->pageTextContains('The configuration options have been saved');
+
+    // @todo Create a content type, reload the form and confirm that the
+    // content type is now available.
+    // @todo Create a file type, reload the form and confirm that the
+    // content type is now available.
+    // @todo Create a media type, reload the form and confirm that the
+    // content type is now available.
   }
 
 }
