@@ -1,0 +1,14 @@
+exif.config_tab:
+  route_name: exif.config
+  title: Settings
+  base_route: exif.config
+
+exif.helper_tab:
+  route_name: exif.helper
+  title: Helper
+  base_route: exif.config
+
+exif.sample_tab:
+  route_name: exif.sample
+  title: Sample
+  base_route: exif.config
