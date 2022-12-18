@@ -492,7 +492,9 @@ class ExifPHPExtension implements ExifInterface {
     $granularity = 0;
     foreach ($value as $element) {
       $parts = explode('/', $element);
-      $dec += (float) (((float) $parts[0] / (float) $parts[1]) / pow(60, $granularity));
+      if ((float) $parts[1] != 0) {
+        $dec += (float) (((float) $parts[0] / (float) $parts[1]) / pow(60, $granularity));
+      }
       $granularity++;
     }
     if ($ref == 'S' || $ref == 'W') {
