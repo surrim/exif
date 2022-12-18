@@ -6,7 +6,6 @@ use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Datetime\Entity\DateFormat;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldConfigInterface;
@@ -590,33 +589,18 @@ class ExifContent {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function handleDateField($index, FieldItemListInterface &$field, $exif_section, $exif_name, $exif_sanitized_value) {
-    if ($exif_name == 'filedatetime') {
-      $format = 'atom';
-    }
-    else {
-      $format = 'exif';
-    }
-    $dateFormatStorage = \Drupal::getContainer()
-      ->get('entity_type.manager')
-      ->getStorage('date_format');
-    if ($dateFormatStorage instanceof EntityStorageInterface) {
-      // Load format for parsing information from image.
-      $dateFormat = $dateFormatStorage->load($format);
-      if ($dateFormat instanceof DateFormat) {
-        // Exif internal format do not handle timezone :(
-        // Using website timezone instead or default storage if none is defined.
-        // @todo drupal_get_user_timezone();
-        // Parse string to date following chosen format.
-        $date_datetime = DrupalDateTime::createFromFormat($dateFormat->getPattern(), $exif_sanitized_value);
-        // Load storage format.
-        $storage_format = $field->getFieldDefinition()
+    // Exif internal format do not handle timezone :(
+    // Using website timezone instead or default storage if none is defined.
+    // @todo drupal_get_user_timezone();
+    // Parse string to date following chosen format.
+    $date_datetime = DrupalDateTime::createFromFormat('Y-m-d\TH:i:s', $exif_sanitized_value);
+    // Load storage format.
+    $storage_format = $field->getFieldDefinition()
           ->getSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE ? DateTimeItemInterface::DATE_STORAGE_FORMAT : DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
-        // Format date to string for storage.
-        $value = $date_datetime->format($storage_format);
-        // Store value.
-        $field->offsetSet($index, $value);
-      }
-    }
+    // Format date to string for storage.
+    $value = $date_datetime->format($storage_format);
+    // Store value.
+    $field->offsetSet($index, $value);
   }
 
   /**
